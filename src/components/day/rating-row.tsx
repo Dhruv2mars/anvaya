@@ -25,10 +25,7 @@ export function RatingRow({ value, onChange, onClear }: Props) {
               if (value === n && onClear) onClear();
               else onChange(n);
             }}
-            style={({ pressed }) => [
-              styles.hit,
-              pressed && styles.pressed,
-            ]}
+            style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
           >
             <View
               style={[
@@ -67,8 +64,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.96 }],
+    opacity: 0.9,
+    transform: [{ scale: 0.94 }],
   },
   dot: {
     width: 44,

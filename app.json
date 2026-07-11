@@ -21,14 +21,16 @@
       "versionCode": 1,
       "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#F4F7FA",
+        "backgroundColor": "#EEF3F8",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "predictiveBackGestureEnabled": true
     },
@@ -51,7 +53,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#F4F7FA",
+          "backgroundColor": "#EEF3F8",
           "imageWidth": 180
         }
       ],
@@ -60,11 +62,12 @@
     "experiments": {
       "typedRoutes": true
     },
+    "owner": "dhruv2mars",
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "anvaya-local-placeholder"
+        "projectId": "fcb3ab25-e9a7-4d14-b8ed-c7ecc6aaf642"
       }
-    },
-    "owner": "anvaya"
+    }
   }
 }

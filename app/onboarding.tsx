@@ -8,12 +8,14 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 const SUGGESTIONS = ["Energy", "Focus", "Calm", "Sleep", "Mood"];
 
 export default function OnboardingScreen() {
+  const insets = useSafeAreaInsets();
   const { completeOnboarding } = useApp();
   const [names, setNames] = useState<string[]>(["Energy", "Focus", "Calm"]);
   const [draft, setDraft] = useState("");
@@ -46,20 +48,23 @@ export default function OnboardingScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top + space.xl, space.xxxl) },
+      ]}
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.brand}>Anvaya</Text>
+      <Text style={styles.tagline}>Life beside the Panchang</Text>
       <Text style={styles.lead}>
-        Track your days beside the Panchang — Tithi, Vaar, Paksha — with a few
-        personal ratings. Local, fast, no account.
+        Rate a few personal measures each day beside today’s Tithi, Vaar, and
+        Paksha. Local, fast, no account.
       </Text>
 
       <Text style={styles.section}>Your metrics</Text>
       <Text style={styles.hint}>
-        Choose 2–5 things you want to rate daily. You can rename or archive later;
-        history stays.
+        Choose 2–5 things to rate daily. Rename or archive later; history stays.
       </Text>
 
       <View style={styles.chips}>
@@ -67,7 +72,7 @@ export default function OnboardingScreen() {
           <Pressable
             key={name}
             onPress={() => removeName(name)}
-            style={styles.chip}
+            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
             accessibilityLabel={`Remove ${name}`}
           >
             <Text style={styles.chipText}>{name} ×</Text>
@@ -87,7 +92,7 @@ export default function OnboardingScreen() {
         />
         <Pressable
           onPress={() => addName(draft)}
-          style={styles.addBtn}
+          style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
           accessibilityLabel="Add metric"
         >
           <Text style={styles.addBtnText}>Add</Text>
@@ -96,7 +101,11 @@ export default function OnboardingScreen() {
 
       <View style={styles.suggestions}>
         {SUGGESTIONS.filter((s) => !names.includes(s)).map((s) => (
-          <Pressable key={s} onPress={() => addName(s)} style={styles.suggest}>
+          <Pressable
+            key={s}
+            onPress={() => addName(s)}
+            style={({ pressed }) => [styles.suggest, pressed && styles.pressed]}
+          >
             <Text style={styles.suggestText}>+ {s}</Text>
           </Pressable>
         ))}
@@ -104,14 +113,17 @@ export default function OnboardingScreen() {
 
       <Text style={styles.section}>Location</Text>
       <Text style={styles.hint}>
-        Anvaya uses your location for accurate sunrise and Panchang. You can deny
-        and still use a default (Delhi) — less accurate for your place.
+        Used for accurate sunrise and Panchang. Deny to use Delhi as a fallback.
       </Text>
 
       <Pressable
         onPress={finish}
         disabled={busy || names.length === 0}
-        style={[styles.cta, (busy || names.length === 0) && styles.ctaDisabled]}
+        style={({ pressed }) => [
+          styles.cta,
+          (busy || names.length === 0) && styles.ctaDisabled,
+          pressed && !(busy || names.length === 0) && styles.pressed,
+        ]}
         accessibilityRole="button"
       >
         {busy ? (
@@ -131,15 +143,20 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: space.xl,
-    paddingTop: space.xxxl,
     paddingBottom: space.xxxl,
     gap: space.md,
   },
   brand: {
     ...type.display,
-    fontSize: 42,
-    lineHeight: 48,
+    fontSize: 44,
+    lineHeight: 50,
+    letterSpacing: -0.4,
     color: colors.ink,
+  },
+  tagline: {
+    ...type.label,
+    color: colors.accent,
+    marginTop: -space.sm,
   },
   lead: {
     ...type.body,
@@ -225,5 +242,9 @@ const styles = StyleSheet.create({
   ctaText: {
     ...type.headline,
     color: colors.surface,
+  },
+  pressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.98 }],
   },
 });

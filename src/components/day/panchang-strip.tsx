@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { PanchangSnapshot } from "@/src/domain/types";
 import { formatPaksha } from "@/src/panchang/engine";
-import { colors, space, type } from "@/src/theme/tokens";
+import { colors, radius, space, type } from "@/src/theme/tokens";
 import { format } from "date-fns";
 
 type Props = {
@@ -30,7 +30,12 @@ export function PanchangStrip({ panchang, locationLabel }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     gap: space.xs,
-    paddingVertical: space.sm,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.lg,
+    backgroundColor: colors.panchangWash,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.borderSubtle,
   },
   primary: {
     ...type.panchang,
@@ -43,6 +48,6 @@ const styles = StyleSheet.create({
   meta: {
     ...type.caption,
     color: colors.inkTertiary,
-    marginTop: 2,
+    marginTop: space.xs,
   },
 });
