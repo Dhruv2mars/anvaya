@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
         styles.content,
         { paddingTop: Math.max(insets.top + space.xl, space.xxxl) },
       ]}
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.brand}>Anvaya</Text>

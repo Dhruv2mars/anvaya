@@ -54,7 +54,7 @@ export default function TodayScreen() {
         styles.content,
         { paddingTop: Math.max(insets.top, space.sm) },
       ]}
-      contentInsetAdjustmentBehavior="automatic"
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.brand}>Anvaya</Text>
