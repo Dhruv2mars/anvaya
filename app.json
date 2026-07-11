@@ -1,23 +1,36 @@
 {
   "expo": {
-    "name": "anvaya-scaffold",
-    "slug": "anvaya-scaffold",
+    "name": "Anvaya",
+    "slug": "anvaya",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "anvayascaffold",
-    "userInterfaceStyle": "automatic",
+    "scheme": "anvaya",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anvaya.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Anvaya uses your location to compute accurate sunrise and Hindu Panchang (Tithi, Vaar, Paksha) for your place. Location is stored only on your device.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.anvaya.app",
+      "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F4F7FA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "predictiveBackGestureEnabled": true
     },
     "web": {
       "bundler": "metro",
@@ -26,17 +39,32 @@
     },
     "plugins": [
       "expo-router",
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Anvaya uses your location to compute accurate sunrise and Hindu Panchang for your place. Location stays on your device."
+        }
+      ],
       [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#F4F7FA",
+          "imageWidth": 180
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "anvaya-local-placeholder"
+      }
+    },
+    "owner": "anvaya"
   }
 }
