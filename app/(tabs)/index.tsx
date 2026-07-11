@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DayNav } from "@/src/components/day/day-nav";
 import { MetricRatings } from "@/src/components/day/metric-ratings";
 import { NoteField } from "@/src/components/day/note-field";
@@ -9,6 +10,7 @@ import { useApp } from "@/src/hooks/app-store";
 import { colors, space, type } from "@/src/theme/tokens";
 
 export default function TodayScreen() {
+  const insets = useSafeAreaInsets();
   const {
     todayKey,
     selectedDayKey,
@@ -48,11 +50,15 @@ export default function TodayScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, space.sm) },
+      ]}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.brand}>Anvaya</Text>
+      <Text style={styles.tagline}>Life beside the Panchang</Text>
 
       <DayNav
         dayKey={selectedDayKey}
@@ -108,7 +114,13 @@ const styles = StyleSheet.create({
   brand: {
     ...type.label,
     color: colors.accent,
-    marginTop: space.sm,
+    letterSpacing: 0.6,
+  },
+  tagline: {
+    ...type.caption,
+    color: colors.inkTertiary,
+    marginTop: -space.sm,
+    marginBottom: space.xs,
   },
   loading: {
     ...type.body,

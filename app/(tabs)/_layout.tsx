@@ -1,7 +1,23 @@
 import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, Text } from "react-native";
+import { Platform, StyleSheet, Text, View } from "react-native";
 import { colors } from "@/src/theme/tokens";
+
+function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
+  return (
+    <View style={styles.iconWrap}>
+      <Text
+        style={[
+          styles.icon,
+          { color: focused ? colors.accent : colors.inkTertiary },
+        ]}
+      >
+        {glyph}
+      </Text>
+      {focused ? <View style={styles.dot} /> : <View style={styles.dotSpacer} />}
+    </View>
+  );
+}
 
 function TabLabel({ label, focused }: { label: string; focused: boolean }) {
   return (
@@ -10,6 +26,7 @@ function TabLabel({ label, focused }: { label: string; focused: boolean }) {
         fontFamily: focused ? "Manrope_600SemiBold" : "Manrope_500Medium",
         fontSize: 11,
         color: focused ? colors.accent : colors.inkTertiary,
+        letterSpacing: 0.1,
       }}
     >
       {label}
@@ -27,8 +44,8 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.surface,
           borderTopColor: colors.borderSubtle,
-          height: Platform.OS === "ios" ? 88 : 64,
-          paddingTop: 6,
+          height: Platform.OS === "ios" ? 88 : 68,
+          paddingTop: 8,
         },
       }}
     >
@@ -36,7 +53,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Today",
-          tabBarIcon: () => null,
+          tabBarIcon: ({ focused }) => <TabIcon glyph="◎" focused={focused} />,
           tabBarLabel: ({ focused }) => <TabLabel label="Today" focused={focused} />,
         }}
       />
@@ -44,7 +61,7 @@ export default function TabLayout() {
         name="history"
         options={{
           title: "History",
-          tabBarIcon: () => null,
+          tabBarIcon: ({ focused }) => <TabIcon glyph="☰" focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel label="History" focused={focused} />
           ),
@@ -54,7 +71,7 @@ export default function TabLayout() {
         name="metrics"
         options={{
           title: "Metrics",
-          tabBarIcon: () => null,
+          tabBarIcon: ({ focused }) => <TabIcon glyph="◇" focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel label="Metrics" focused={focused} />
           ),
@@ -64,7 +81,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: () => null,
+          tabBarIcon: ({ focused }) => <TabIcon glyph="⚙" focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel label="Settings" focused={focused} />
           ),
@@ -73,3 +90,27 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  iconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+    minHeight: 28,
+  },
+  icon: {
+    fontSize: 16,
+    lineHeight: 18,
+    fontFamily: "Manrope_600SemiBold",
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.accent,
+  },
+  dotSpacer: {
+    width: 4,
+    height: 4,
+  },
+});

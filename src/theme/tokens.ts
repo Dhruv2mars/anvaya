@@ -1,24 +1,26 @@
 /**
- * Anvaya visual system — restrained cool daylight.
- * Scene: quiet morning desk, soft sky light, personal ritual without temple drama.
+ * Anvaya visual system — cool daylight desk, cobalt accent.
+ * Scene: quiet morning light, personal ritual without temple drama.
+ * Restrained strategy: tinted neutrals + one accent ≤10%.
  */
 export const colors = {
-  bg: "#F4F7FA",
+  bg: "#EEF3F8",
   surface: "#FFFFFF",
-  surfaceMuted: "#E8EEF4",
-  ink: "#1A2430",
-  inkSecondary: "#4A5A6A",
-  inkTertiary: "#7A8A9A",
-  accent: "#2F6FED",
-  accentSoft: "#D6E4FF",
-  accentPressed: "#2458C4",
-  border: "#D5DEE8",
-  borderSubtle: "#E6ECF2",
-  ratingEmpty: "#D5DEE8",
-  ratingFilled: "#2F6FED",
-  danger: "#C23B3B",
-  success: "#2A7A4B",
-  overlay: "rgba(26, 36, 48, 0.4)",
+  surfaceMuted: "#E2EAF2",
+  ink: "#15202B",
+  inkSecondary: "#3D4F61",
+  inkTertiary: "#6B7C8D",
+  accent: "#2A63D8",
+  accentSoft: "#D9E6FF",
+  accentPressed: "#1E4FB0",
+  border: "#C9D5E3",
+  borderSubtle: "#DCE5EE",
+  ratingEmpty: "#C9D5E3",
+  ratingFilled: "#2A63D8",
+  danger: "#B83A3A",
+  success: "#247A48",
+  overlay: "rgba(21, 32, 43, 0.4)",
+  panchangWash: "#E6EEF8",
 } as const;
 
 export const space = {
@@ -43,13 +45,13 @@ export const type = {
     fontFamily: "Fraunces_600SemiBold",
     fontSize: 34,
     lineHeight: 40,
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
   title: {
     fontFamily: "Manrope_700Bold",
     fontSize: 22,
     lineHeight: 28,
-    letterSpacing: -0.3,
+    letterSpacing: -0.25,
   },
   headline: {
     fontFamily: "Manrope_600SemiBold",
@@ -70,7 +72,7 @@ export const type = {
     fontFamily: "Manrope_600SemiBold",
     fontSize: 13,
     lineHeight: 18,
-    letterSpacing: 0.2,
+    letterSpacing: 0.15,
   },
   caption: {
     fontFamily: "Manrope_500Medium",
@@ -79,13 +81,14 @@ export const type = {
   },
   panchang: {
     fontFamily: "Fraunces_500Medium",
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
+    letterSpacing: -0.1,
   },
 } as const;
 
 export const motion = {
   fast: 150,
-  normal: 220,
-  slow: 320,
+  normal: 200,
+  slow: 280,
 } as const;

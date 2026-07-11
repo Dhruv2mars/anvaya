@@ -7,7 +7,7 @@ Anvaya helps people notice their days beside the Hindu Panchang — not as astro
 People who already orient life around Tithi / Paksha / Vaar and want a fast, private daily log.
 
 ## Platform
-android (primary) · ios · adaptive
+adaptive
 
 ## Register
 product
