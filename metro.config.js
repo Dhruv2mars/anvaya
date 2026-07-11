@@ -10,7 +10,35 @@ config.resolver.assetExts.push("wasm");
 const emptyModule = path.resolve(__dirname, "metro.empty.js");
 const previousResolveRequest = config.resolver.resolveRequest;
 
+// Belt-and-suspenders: stub Node builtins even if a dependency still pulls them.
+config.resolver.extraNodeModules = {
+  ...(config.resolver.extraNodeModules || {}),
+  fs: emptyModule,
+  "fs/promises": emptyModule,
+  "node:fs": emptyModule,
+  "node:fs/promises": emptyModule,
+};
+
+// Never bundle the kundli PDF exporter (Node-only, unused).
+const exporterBlock =
+  /node_modules[/\\]@ishubhamx[/\\]panchangam-js[/\\]dist[/\\]kundli[/\\]exporter\.js$/;
+const existingBlock = config.resolver.blockList;
+config.resolver.blockList = Array.isArray(existingBlock)
+  ? [...existingBlock, exporterBlock]
+  : existingBlock
+    ? [existingBlock, exporterBlock]
+    : [exporterBlock];
+
+const astronomyCjs = path.resolve(
+  __dirname,
+  "node_modules/astronomy-engine/astronomy.js",
+);
+
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  // Force CJS astronomy-engine so Observer instanceof matches panchangam-js.
+  if (moduleName === "astronomy-engine") {
+    return { type: "sourceFile", filePath: astronomyCjs };
+  }
   // Node-only modules used by optional panchangam-js kundli PDF exporter.
   if (
     moduleName === "fs" ||
@@ -23,7 +51,9 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   // Avoid bundling the PDF exporter itself (it is unused by Anvaya).
   if (
     typeof moduleName === "string" &&
-    (moduleName.includes("kundli/exporter") || moduleName.endsWith("/exporter"))
+    (moduleName.includes("kundli/exporter") ||
+      moduleName === "./exporter" ||
+      moduleName.endsWith("/exporter"))
   ) {
     return { type: "sourceFile", filePath: emptyModule };
   }

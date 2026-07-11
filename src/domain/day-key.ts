@@ -45,3 +45,14 @@ export function formatDayHeading(dayKey: string, todayKey: string): string {
 export function formatShortDate(dayKey: string): string {
   return format(parseDayKey(dayKey), "d MMM");
 }
+
+/** Format a clock time at the observer longitude (not device timezone). */
+export function formatTimeAtLongitude(date: Date, longitude: number): string {
+  const offsetMs = Math.round(longitude / 15) * 3_600_000;
+  const shifted = new Date(date.getTime() + offsetMs);
+  const hours = shifted.getUTCHours();
+  const minutes = shifted.getUTCMinutes();
+  const hour12 = ((hours + 11) % 12) + 1;
+  const ampm = hours < 12 ? "AM" : "PM";
+  return `${hour12}:${String(minutes).padStart(2, "0")} ${ampm}`;
+}
