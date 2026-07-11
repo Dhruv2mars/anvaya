@@ -1,56 +1,111 @@
-import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { Stack, useRouter, useSegments } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
+import {
+  useFonts,
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+} from "@expo-google-fonts/manrope";
+import {
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+} from "@expo-google-fonts/fraunces";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { AppProvider, useApp } from "@/src/hooks/app-store";
+import { colors } from "@/src/theme/tokens";
 
-import { useColorScheme } from '@/components/useColorScheme';
+export { ErrorBoundary } from "expo-router";
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+function RootNavigator() {
+  const { ready, onboardingComplete, error } = useApp();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (!ready) return;
+    const onOnboarding = segments[0] === "onboarding";
+    if (!onboardingComplete && !onOnboarding) {
+      router.replace("/onboarding");
+    } else if (onboardingComplete && onOnboarding) {
+      router.replace("/");
     }
-  }, [loaded]);
+  }, [ready, onboardingComplete, segments, router]);
 
-  if (!loaded) {
-    return null;
+  if (!ready) {
+    return (
+      <View style={styles.boot}>
+        <ActivityIndicator color={colors.accent} size="large" />
+      </View>
+    );
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  if (error) {
+    return (
+      <View style={styles.boot}>
+        <Text style={styles.errorText}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    <>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
       </Stack>
-    </ThemeProvider>
+    </>
   );
 }
+
+export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => undefined);
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return <View style={styles.boot} />;
+  }
+
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <AppProvider>
+        <RootNavigator />
+      </AppProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  boot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.bg,
+  },
+  errorText: {
+    color: colors.danger,
+    textAlign: "center",
+    padding: 24,
+    fontFamily: "Manrope_500Medium",
+    fontSize: 16,
+  },
+});
