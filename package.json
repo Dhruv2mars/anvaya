@@ -17,7 +17,7 @@
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.4.2",
-    "@ishubhamx/panchangam-js": "^3.0.0",
+    "@ishubhamx/panchangam-js": "3.0.0",
     "astronomy-engine": "^2.1.19",
     "date-fns": "^4.4.0",
     "expo": "~57.0.4",
