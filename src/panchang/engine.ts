@@ -62,18 +62,55 @@ function asDate(value: Date | string | number | null | undefined, fallback: Date
 }
 
 /**
- * Resolve the Hindu day key for "now" using sunrise-to-sunrise boundaries.
- * Before local sunrise, we are still on the previous Hindu day.
+ * Resolve the Hindu day key for an absolute instant using sunrise-to-sunrise
+ * boundaries at the observer location (not the device civil calendar alone).
+ *
+ * We probe sunrise for nearby UTC calendar days and pick the interval that
+ * contains `now`. The returned key is the civil YYYY-MM-DD of that day's sunrise
+ * in the observer's longitude-based local solar sense (library sunrise date).
  */
 export function resolveHinduDayKey(now: Date, location: LocationFix): string {
   const observer = new Observer(location.latitude, location.longitude, location.altitude);
+  const utcNoon = (y: number, m: number, d: number) =>
+    new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+
+  // Start from UTC date of `now`, then scan ±2 days for the containing sunrise window.
+  const base = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0)
+  );
+
+  type Cand = { key: string; sunrise: Date };
+  const candidates: Cand[] = [];
+  for (let delta = -2; delta <= 2; delta++) {
+    const probe = new Date(base.getTime() + delta * 86_400_000);
+    const y = probe.getUTCFullYear();
+    const m = probe.getUTCMonth() + 1;
+    const d = probe.getUTCDate();
+    const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const p = getPanchangam(utcNoon(y, m, d), observer);
+    const sunrise = asDate(p.sunrise, utcNoon(y, m, d));
+    candidates.push({ key, sunrise });
+  }
+
+  candidates.sort((a, b) => a.sunrise.getTime() - b.sunrise.getTime());
+
+  for (let i = 0; i < candidates.length; i++) {
+    const start = candidates[i]!;
+    const end = candidates[i + 1];
+    const afterStart = now.getTime() >= start.sunrise.getTime();
+    const beforeEnd = !end || now.getTime() < end.sunrise.getTime();
+    if (afterStart && beforeEnd) {
+      // Key by the calendar date of sunrise in the observer local zone approx:
+      // use the civil day key the library was probed with when sunrise falls on that day.
+      return civilDayKey(start.sunrise);
+    }
+  }
+
+  // Fallback: previous device-local logic
   const civil = civilDayKey(now);
   const todayP = getPanchangam(parseDayKey(civil), observer);
   const sunrise = asDate(todayP.sunrise, parseDayKey(civil));
-
-  if (now.getTime() < sunrise.getTime()) {
-    return shiftDayKey(civil, -1);
-  }
+  if (now.getTime() < sunrise.getTime()) return shiftDayKey(civil, -1);
   return civil;
 }
 

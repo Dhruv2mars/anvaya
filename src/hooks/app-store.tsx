@@ -7,6 +7,7 @@ import React, {
   useState,
   useSyncExternalStore,
 } from "react";
+import { AppState as RNAppState, type AppStateStatus } from "react-native";
 import type { DayRecord, LocationFix, Metric, PanchangSnapshot, Rating } from "@/src/domain/types";
 import { DEFAULT_LOCATION } from "@/src/domain/types";
 import { resolveHinduDayKey, computePanchang } from "@/src/panchang/engine";
@@ -14,7 +15,7 @@ import { resolveLocation } from "@/src/lib/location";
 import * as repo from "@/src/db/repository";
 import { getDb } from "@/src/db/client";
 
-type AppState = {
+type StoreState = {
   ready: boolean;
   onboardingComplete: boolean;
   location: LocationFix;
@@ -45,7 +46,7 @@ type AppActions = {
   refresh: () => Promise<void>;
 };
 
-const AppContext = createContext<(AppState & AppActions) | null>(null);
+const AppContext = createContext<(StoreState & AppActions) | null>(null);
 
 const listeners = new Set<() => void>();
 let version = 0;
@@ -126,6 +127,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     void bootstrap();
   }, [bootstrap]);
 
+  // Recompute Hindu "today" when returning from background across sunrise.
+  useEffect(() => {
+    const onChange = (state: AppStateStatus) => {
+      if (state !== "active" || !ready) return;
+      const key = resolveHinduDayKey(new Date(), location);
+      if (key !== todayKey) {
+        setTodayKey(key);
+        if (selectedDayKey === todayKey) {
+          void loadDay(key, location);
+        }
+      }
+    };
+    const sub = RNAppState.addEventListener("change", onChange);
+    return () => sub.remove();
+  }, [ready, location, todayKey, selectedDayKey, loadDay]);
+
   const selectDay = useCallback(
     async (dayKey: string) => {
       await loadDay(dayKey, location);
@@ -159,6 +176,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (metricId: string) => {
       await repo.clearRating(selectedDayKey, metricId);
       setRatings((prev) => prev.filter((r) => r.metricId !== metricId));
+      const hist = await repo.listDaysWithActivity(120);
+      setHistory(hist);
       bump();
     },
     [selectedDayKey]
@@ -333,7 +352,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 
-export function useApp(): AppState & AppActions {
+export function useApp(): StoreState & AppActions {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error("useApp must be used within AppProvider");
   return ctx;

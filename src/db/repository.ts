@@ -318,8 +318,16 @@ export async function getAllRatingsForMetric(metricId: string): Promise<Rating[]
 export async function getRecentRatings(limitDays = 30): Promise<Rating[]> {
   const db = await getDb();
   const rows = await db.getAllAsync<RatingRow>(
-    `SELECT * FROM ratings ORDER BY day_key DESC LIMIT ?`,
-    limitDays * 20
+    `SELECT * FROM ratings ORDER BY day_key DESC`
   );
-  return rows.map(mapRating);
+  if (rows.length === 0) return [];
+  const newest = rows[0]!.day_key;
+  const [y, m, d] = newest.split("-").map(Number);
+  const cutoffDate = new Date(y!, m! - 1, d!);
+  cutoffDate.setDate(cutoffDate.getDate() - limitDays);
+  const cy = cutoffDate.getFullYear();
+  const cm = String(cutoffDate.getMonth() + 1).padStart(2, "0");
+  const cd = String(cutoffDate.getDate()).padStart(2, "0");
+  const cutoff = `${cy}-${cm}-${cd}`;
+  return rows.filter((r) => r.day_key >= cutoff).map(mapRating);
 }

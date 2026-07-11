@@ -27,10 +27,12 @@ EAS manages a upload key by default. Download credentials backup from Expo dashb
    - Feature graphic 1024×500
    - App icon 512×512 (export from `assets/images/icon.png`)
 4. Privacy policy URL — host `PRIVACY.md` (GitHub Pages, Notion public page, etc.) and paste URL.
-5. Data safety form:
-   - Location: collected, not shared, app functionality, optional
-   - Personal info: none required / no account
-   - Data encrypted in transit: N/A for local-only core; if you later add sync, update this
+5. Data safety form (align with `PRIVACY.md`):
+   - **Location**: collected (precise), optional, app functionality, stored on device, not shared
+   - **App activity / personal info**: user-created metric names, ratings, optional notes — collected, stored on device, not shared, for app functionality
+   - **Data encrypted in transit**: N/A for local-only core (no network sync in v1)
+   - **Data encrypted at rest**: follow Play defaults for device storage; declare honestly
+   - Do **not** claim “no data collected” — wellness-adjacent ratings and notes are on-device data
 6. Content rating questionnaire (IARC).
 7. Target audience / news apps declarations as applicable.
 8. Submit to internal testing → closed → production.

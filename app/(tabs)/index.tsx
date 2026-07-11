@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { DayNav } from "@/src/components/day/day-nav";
 import { MetricRatings } from "@/src/components/day/metric-ratings";
@@ -14,6 +15,7 @@ export default function TodayScreen() {
     panchang,
     day,
     metrics,
+    allMetrics,
     ratings,
     location,
     selectDay,
@@ -30,6 +32,18 @@ export default function TodayScreen() {
       : location.source === "cached"
         ? "Last known location"
         : "Default (Delhi) — enable location for accuracy";
+
+  // Active metrics plus any archived metrics that already have a rating on this day,
+  // so history edit never hides preserved scores.
+  const visibleMetrics = useMemo(() => {
+    const ratedIds = new Set(ratings.map((r) => r.metricId));
+    const archivedWithRating = allMetrics.filter(
+      (m) => m.archivedAt != null && ratedIds.has(m.id)
+    );
+    const byId = new Map<string, (typeof metrics)[number]>();
+    for (const m of [...metrics, ...archivedWithRating]) byId.set(m.id, m);
+    return [...byId.values()].sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [metrics, allMetrics, ratings]);
 
   return (
     <ScrollView
@@ -62,7 +76,7 @@ export default function TodayScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Ratings</Text>
         <MetricRatings
-          metrics={metrics}
+          metrics={visibleMetrics}
           ratings={ratings}
           onRate={(id, v) => void setRating(id, v)}
           onClear={(id) => void clearRating(id)}

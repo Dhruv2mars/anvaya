@@ -19,6 +19,7 @@
     "android": {
       "package": "com.anvaya.app",
       "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#F4F7FA",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
