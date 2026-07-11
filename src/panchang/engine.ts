@@ -5,7 +5,7 @@ import {
   nakshatraNames,
   dayNames,
 } from "@ishubhamx/panchangam-js";
-import { civilDayKey, parseDayKey, shiftDayKey } from "@/src/domain/day-key";
+import { civilDayKeyAtLongitude, noonAtLongitude, shiftDayKey } from "@/src/domain/day-key";
 import type { LocationFix, PanchangSnapshot } from "@/src/domain/types";
 
 const SANSKRIT_VAAR: Record<string, string> = {
@@ -63,32 +63,18 @@ function asDate(value: Date | string | number | null | undefined, fallback: Date
 
 /**
  * Resolve the Hindu day key for an absolute instant using sunrise-to-sunrise
- * boundaries at the observer location (not the device civil calendar alone).
- *
- * We probe sunrise for nearby UTC calendar days and pick the interval that
- * contains `now`. The returned key is the civil YYYY-MM-DD of that day's sunrise
- * in the observer's longitude-based local solar sense (library sunrise date).
+ * boundaries at the observer location (independent of device timezone).
  */
 export function resolveHinduDayKey(now: Date, location: LocationFix): string {
   const observer = new Observer(location.latitude, location.longitude, location.altitude);
-  const utcNoon = (y: number, m: number, d: number) =>
-    new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
-
-  // Start from UTC date of `now`, then scan ±2 days for the containing sunrise window.
-  const base = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0)
-  );
+  const baseKey = civilDayKeyAtLongitude(now, location.longitude);
 
   type Cand = { key: string; sunrise: Date };
   const candidates: Cand[] = [];
   for (let delta = -2; delta <= 2; delta++) {
-    const probe = new Date(base.getTime() + delta * 86_400_000);
-    const y = probe.getUTCFullYear();
-    const m = probe.getUTCMonth() + 1;
-    const d = probe.getUTCDate();
-    const key = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const p = getPanchangam(utcNoon(y, m, d), observer);
-    const sunrise = asDate(p.sunrise, utcNoon(y, m, d));
+    const key = shiftDayKey(baseKey, delta);
+    const p = getPanchangam(noonAtLongitude(key, location.longitude), observer);
+    const sunrise = asDate(p.sunrise, noonAtLongitude(key, location.longitude));
     candidates.push({ key, sunrise });
   }
 
@@ -100,23 +86,16 @@ export function resolveHinduDayKey(now: Date, location: LocationFix): string {
     const afterStart = now.getTime() >= start.sunrise.getTime();
     const beforeEnd = !end || now.getTime() < end.sunrise.getTime();
     if (afterStart && beforeEnd) {
-      // Key by the calendar date of sunrise in the observer local zone approx:
-      // use the civil day key the library was probed with when sunrise falls on that day.
-      return civilDayKey(start.sunrise);
+      return civilDayKeyAtLongitude(start.sunrise, location.longitude);
     }
   }
 
-  // Fallback: previous device-local logic
-  const civil = civilDayKey(now);
-  const todayP = getPanchangam(parseDayKey(civil), observer);
-  const sunrise = asDate(todayP.sunrise, parseDayKey(civil));
-  if (now.getTime() < sunrise.getTime()) return shiftDayKey(civil, -1);
-  return civil;
+  return baseKey;
 }
 
 export function computePanchang(dayKey: string, location: LocationFix): PanchangSnapshot {
   const observer = new Observer(location.latitude, location.longitude, location.altitude);
-  const date = parseDayKey(dayKey);
+  const date = noonAtLongitude(dayKey, location.longitude);
   const p = getPanchangam(date, observer);
 
   const tithiIndex: number = typeof p.tithi === "number" ? p.tithi : 0;

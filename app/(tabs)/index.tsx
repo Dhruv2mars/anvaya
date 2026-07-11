@@ -84,7 +84,12 @@ export default function TodayScreen() {
       </View>
 
       <View style={styles.section}>
-        <NoteField value={day?.note ?? ""} onCommit={(n) => void setNote(n)} />
+        <NoteField
+          key={selectedDayKey}
+          dayKey={selectedDayKey}
+          value={day?.note ?? ""}
+          onCommit={(n) => void setNote(n)}
+        />
       </View>
     </ScrollView>
   );

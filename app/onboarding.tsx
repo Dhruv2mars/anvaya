@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,6 +18,7 @@ export default function OnboardingScreen() {
   const [names, setNames] = useState<string[]>(["Energy", "Focus", "Calm"]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const finishing = useRef(false);
 
   const addName = useCallback((name: string) => {
     const trimmed = name.trim();
@@ -31,11 +32,13 @@ export default function OnboardingScreen() {
   }, []);
 
   const finish = useCallback(async () => {
-    if (names.length === 0) return;
+    if (names.length === 0 || finishing.current) return;
+    finishing.current = true;
     setBusy(true);
     try {
       await completeOnboarding(names);
     } finally {
+      finishing.current = false;
       setBusy(false);
     }
   }, [completeOnboarding, names]);

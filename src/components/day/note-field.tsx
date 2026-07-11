@@ -1,24 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
+  dayKey: string;
   value: string;
   onCommit: (note: string) => void;
 };
 
-export function NoteField({ value, onCommit }: Props) {
+/** Parent should `key={dayKey}` so this remounts cleanly on day change. */
+export function NoteField({ dayKey, value, onCommit }: Props) {
   const [draft, setDraft] = useState(value);
-  const focusedRef = useRef(false);
+  const dayRef = useRef(dayKey);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!focusedRef.current) setDraft(value);
-  }, [value]);
 
   const scheduleCommit = (next: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
+      if (dayRef.current !== dayKey) return;
       if (next !== value) onCommit(next);
     }, 400);
   };
@@ -32,12 +31,9 @@ export function NoteField({ value, onCommit }: Props) {
           setDraft(text);
           scheduleCommit(text);
         }}
-        onFocus={() => {
-          focusedRef.current = true;
-        }}
         onBlur={() => {
-          focusedRef.current = false;
           if (timerRef.current) clearTimeout(timerRef.current);
+          if (dayRef.current !== dayKey) return;
           if (draft !== value) onCommit(draft);
         }}
         placeholder="One line for the day"
@@ -46,6 +42,7 @@ export function NoteField({ value, onCommit }: Props) {
         returnKeyType="done"
         onSubmitEditing={() => {
           if (timerRef.current) clearTimeout(timerRef.current);
+          if (dayRef.current !== dayKey) return;
           if (draft !== value) onCommit(draft);
         }}
         style={styles.input}

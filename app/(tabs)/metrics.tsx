@@ -81,11 +81,11 @@ export default function MetricsScreen() {
                   if (editName.trim() && editName !== m.name) {
                     await renameMetric(m.id, editName);
                   }
-                  setEditingId(null);
+                  setEditingId((current) => (current === m.id ? null : current));
                 }}
                 onSubmitEditing={async () => {
                   if (editName.trim()) await renameMetric(m.id, editName);
-                  setEditingId(null);
+                  setEditingId((current) => (current === m.id ? null : current));
                 }}
               />
             ) : (

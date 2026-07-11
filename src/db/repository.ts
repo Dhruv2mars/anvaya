@@ -186,7 +186,7 @@ export async function upsertDayPanchang(snapshot: PanchangSnapshot): Promise<Day
   return (await getDay(snapshot.dayKey))!;
 }
 
-export async function setDayNote(dayKey: string, note: string): Promise<void> {
+export async function setDayNote(dayKey: string, note: string): Promise<string> {
   const db = await getDb();
   const existing = await getDay(dayKey);
   const now = Date.now();
@@ -208,6 +208,7 @@ export async function setDayNote(dayKey: string, note: string): Promise<void> {
       now
     );
   }
+  return trimmed;
 }
 
 export async function getRatingsForDay(dayKey: string): Promise<Rating[]> {

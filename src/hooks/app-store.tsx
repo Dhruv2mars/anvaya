@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
@@ -68,8 +69,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [history, setHistory] = useState<DayRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const loadGeneration = useRef(0);
 
-  // Force re-render subscribers when we bump (for external tools)
   useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
@@ -79,9 +80,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const loadDay = useCallback(async (dayKey: string, loc: LocationFix) => {
+    const gen = ++loadGeneration.current;
     const snap = computePanchang(dayKey, loc);
     const dayRow = await repo.upsertDayPanchang(snap);
     const dayRatings = await repo.getRatingsForDay(dayKey);
+    if (gen !== loadGeneration.current) return;
     setPanchang(snap);
     setDay(dayRow);
     setRatings(dayRatings);
@@ -185,13 +188,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setNote = useCallback(
     async (note: string) => {
-      await repo.setDayNote(selectedDayKey, note);
+      const trimmed = await repo.setDayNote(selectedDayKey, note);
       setDay((prev) =>
         prev
-          ? { ...prev, note, noteUpdatedAt: Date.now() }
+          ? { ...prev, note: trimmed, noteUpdatedAt: Date.now() }
           : {
               dayKey: selectedDayKey,
-              note,
+              note: trimmed,
               noteUpdatedAt: Date.now(),
               tithi: panchang?.tithi ?? null,
               vaar: panchang?.vaar ?? null,
