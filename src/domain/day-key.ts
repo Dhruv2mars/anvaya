@@ -46,9 +46,11 @@ export function formatShortDate(dayKey: string): string {
   return format(parseDayKey(dayKey), "d MMM");
 }
 
-/** Format a clock time at the observer longitude (not device timezone). */
+/** Format a clock time at the observer longitude (mean solar time, not device TZ). */
 export function formatTimeAtLongitude(date: Date, longitude: number): string {
-  const offsetMs = Math.round(longitude / 15) * 3_600_000;
+  // Fractional hour offset from longitude — matches astronomy wall-clock at the
+  // observer, including half-hour zones better than whole-hour rounding.
+  const offsetMs = (longitude / 15) * 3_600_000;
   const shifted = new Date(date.getTime() + offsetMs);
   const hours = shifted.getUTCHours();
   const minutes = shifted.getUTCMinutes();
