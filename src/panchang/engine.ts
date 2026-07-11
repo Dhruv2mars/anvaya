@@ -1,10 +1,12 @@
-import {
-  getPanchangam,
-  Observer,
-  tithiNames,
-  nakshatraNames,
-  dayNames,
-} from "@ishubhamx/panchangam-js";
+// Deep imports avoid the package barrel, which re-exports kundli/exporter
+// (Node `fs`) and breaks Metro/Expo Go on native.
+import { getPanchangam } from "@ishubhamx/panchangam-js/dist/core/panchangam";
+import { tithiNames } from "@ishubhamx/panchangam-js/dist/data/tithis";
+import { nakshatraNames } from "@ishubhamx/panchangam-js/dist/data/nakshatras";
+import { dayNames } from "@ishubhamx/panchangam-js/dist/data/vara";
+// Metro resolves astronomy-engine to the CJS build so Observer matches
+// panchangam-js `require("astronomy-engine")` instanceof checks.
+import { Observer } from "astronomy-engine";
 import { civilDayKeyAtLongitude, noonAtLongitude, shiftDayKey } from "@/src/domain/day-key";
 import type { LocationFix, PanchangSnapshot } from "@/src/domain/types";
 

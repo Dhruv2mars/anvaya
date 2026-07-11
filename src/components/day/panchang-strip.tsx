@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { PanchangSnapshot } from "@/src/domain/types";
+import { formatTimeAtLongitude } from "@/src/domain/day-key";
 import { formatPaksha } from "@/src/panchang/engine";
 import { colors, radius, space, type } from "@/src/theme/tokens";
-import { format } from "date-fns";
 
 type Props = {
   panchang: PanchangSnapshot;
@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function PanchangStrip({ panchang, locationLabel }: Props) {
-  const sunrise = format(panchang.sunrise, "h:mm a");
+  const sunrise = formatTimeAtLongitude(panchang.sunrise, panchang.longitude);
 
   return (
     <View style={styles.wrap} accessibilityRole="summary">
