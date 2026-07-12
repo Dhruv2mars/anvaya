@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
@@ -11,14 +11,43 @@ type Props = {
 /** Parent should `key={dayKey}` so this remounts cleanly on day change. */
 export function NoteField({ dayKey, value, onCommit }: Props) {
   const [draft, setDraft] = useState(value);
-  const dayRef = useRef(dayKey);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const draftRef = useRef(value);
+  const committedValueRef = useRef(value);
+  const onCommitRef = useRef(onCommit);
+  const pendingCommitRef = useRef(false);
+
+  useEffect(() => {
+    onCommitRef.current = onCommit;
+  }, [onCommit]);
+
+  const flushCommit = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (!pendingCommitRef.current) return;
+
+    pendingCommitRef.current = false;
+    const next = draftRef.current;
+    if (next === committedValueRef.current) return;
+
+    committedValueRef.current = next;
+    onCommitRef.current(next);
+  }, []);
+
+  useEffect(
+    () => () => {
+      flushCommit();
+    },
+    [flushCommit]
+  );
 
   const scheduleCommit = (next: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    pendingCommitRef.current = true;
     timerRef.current = setTimeout(() => {
-      if (dayRef.current !== dayKey) return;
-      if (next !== value) onCommit(next);
+      flushCommit();
     }, 400);
   };
 
@@ -29,22 +58,15 @@ export function NoteField({ dayKey, value, onCommit }: Props) {
         value={draft}
         onChangeText={(text) => {
           setDraft(text);
+          draftRef.current = text;
           scheduleCommit(text);
         }}
-        onBlur={() => {
-          if (timerRef.current) clearTimeout(timerRef.current);
-          if (dayRef.current !== dayKey) return;
-          if (draft !== value) onCommit(draft);
-        }}
+        onBlur={flushCommit}
         placeholder="One line for the day"
         placeholderTextColor={colors.inkTertiary}
         maxLength={280}
         returnKeyType="done"
-        onSubmitEditing={() => {
-          if (timerRef.current) clearTimeout(timerRef.current);
-          if (dayRef.current !== dayKey) return;
-          if (draft !== value) onCommit(draft);
-        }}
+        onSubmitEditing={flushCommit}
         style={styles.input}
         accessibilityLabel="Day note"
       />

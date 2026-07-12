@@ -6,7 +6,6 @@ import React, {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 import { AppState as RNAppState, type AppStateStatus } from "react-native";
 import type { DayRecord, LocationFix, Metric, PanchangSnapshot, Rating } from "@/src/domain/types";
@@ -49,13 +48,6 @@ type AppActions = {
 
 const AppContext = createContext<(StoreState & AppActions) | null>(null);
 
-const listeners = new Set<() => void>();
-let version = 0;
-function bump() {
-  version += 1;
-  listeners.forEach((l) => l());
-}
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
@@ -71,14 +63,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const loadGeneration = useRef(0);
 
-  useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb);
-      return () => listeners.delete(cb);
-    },
-    () => version
-  );
-
   const loadDay = useCallback(async (dayKey: string, loc: LocationFix) => {
     const gen = ++loadGeneration.current;
     const snap = computePanchang(dayKey, loc);
@@ -93,6 +77,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const bootstrap = useCallback(async () => {
     try {
+      setReady(false);
+      setError(null);
       const dbTimeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Database open timed out")), 12000)
       );
@@ -116,7 +102,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const hist = await repo.listDaysWithActivity(120);
       setHistory(hist);
       setReady(true);
-      bump();
     } catch (e) {
       console.error("Anvaya bootstrap failed", e);
       setError(e instanceof Error ? e.message : "Failed to start Anvaya");
@@ -149,7 +134,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const selectDay = useCallback(
     async (dayKey: string) => {
       await loadDay(dayKey, location);
-      bump();
     },
     [loadDay, location]
   );
@@ -158,7 +142,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const key = resolveHinduDayKey(new Date(), location);
     setTodayKey(key);
     await loadDay(key, location);
-    bump();
   }, [loadDay, location]);
 
   const setRating = useCallback(
@@ -170,7 +153,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       const hist = await repo.listDaysWithActivity(120);
       setHistory(hist);
-      bump();
     },
     [selectedDayKey]
   );
@@ -181,7 +163,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setRatings((prev) => prev.filter((r) => r.metricId !== metricId));
       const hist = await repo.listDaysWithActivity(120);
       setHistory(hist);
-      bump();
     },
     [selectedDayKey]
   );
@@ -209,7 +190,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       );
       const hist = await repo.listDaysWithActivity(120);
       setHistory(hist);
-      bump();
     },
     [selectedDayKey, panchang, location]
   );
@@ -223,7 +203,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (name: string) => {
       await repo.createMetric(name);
       await refreshMetrics();
-      bump();
     },
     [refreshMetrics]
   );
@@ -232,7 +211,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (id: string, name: string) => {
       await repo.renameMetric(id, name);
       await refreshMetrics();
-      bump();
     },
     [refreshMetrics]
   );
@@ -241,7 +219,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       await repo.archiveMetric(id);
       await refreshMetrics();
-      bump();
     },
     [refreshMetrics]
   );
@@ -250,7 +227,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       await repo.restoreMetric(id);
       await refreshMetrics();
-      bump();
     },
     [refreshMetrics]
   );
@@ -259,7 +235,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     async (ids: string[]) => {
       await repo.reorderMetrics(ids);
       await refreshMetrics();
-      bump();
     },
     [refreshMetrics]
   );
@@ -277,7 +252,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const key = resolveHinduDayKey(new Date(), loc);
       setTodayKey(key);
       await loadDay(key, loc);
-      bump();
     },
     [loadDay, refreshMetrics]
   );
@@ -288,7 +262,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const key = resolveHinduDayKey(new Date(), loc);
     setTodayKey(key);
     await loadDay(selectedDayKey || key, loc);
-    bump();
   }, [loadDay, selectedDayKey]);
 
   const refresh = useCallback(async () => {

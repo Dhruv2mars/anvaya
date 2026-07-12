@@ -229,45 +229,50 @@ export async function upsertRating(
     throw new Error("Rating must be an integer from 1 to 5");
   }
   const db = await getDb();
-  const existing = await db.getFirstAsync<RatingRow>(
-    `SELECT * FROM ratings WHERE day_key = ? AND metric_id = ?`,
-    dayKey,
-    metricId
-  );
   const now = Date.now();
-  if (existing) {
-    await db.runAsync(
-      `UPDATE ratings SET value=?, updated_at=? WHERE id=?`,
-      value,
-      now,
-      existing.id
-    );
-    return { ...mapRating(existing), value, updatedAt: now };
-  }
-  const rating: Rating = {
+  let rating: Rating = {
     id: nanoid(),
     dayKey,
     metricId,
     value,
     updatedAt: now,
   };
-  await db.runAsync(
-    `INSERT INTO ratings (id, day_key, metric_id, value, updated_at) VALUES (?, ?, ?, ?, ?)`,
-    rating.id,
-    rating.dayKey,
-    rating.metricId,
-    rating.value,
-    rating.updatedAt
-  );
-  // Ensure day row exists
-  const day = await getDay(dayKey);
-  if (!day) {
-    await db.runAsync(
-      `INSERT INTO days (day_key, note, updated_at) VALUES (?, '', ?)`,
+
+  await db.withExclusiveTransactionAsync(async (txn) => {
+    // History joins ratings through days, so both rows must commit or roll back together.
+    await txn.runAsync(
+      `INSERT INTO days (day_key, note, updated_at) VALUES (?, '', ?)
+       ON CONFLICT(day_key) DO NOTHING`,
       dayKey,
       now
     );
-  }
+
+    const existing = await txn.getFirstAsync<RatingRow>(
+      `SELECT * FROM ratings WHERE day_key = ? AND metric_id = ?`,
+      dayKey,
+      metricId
+    );
+    if (existing) {
+      await txn.runAsync(
+        `UPDATE ratings SET value=?, updated_at=? WHERE id=?`,
+        value,
+        now,
+        existing.id
+      );
+      rating = { ...mapRating(existing), value, updatedAt: now };
+      return;
+    }
+
+    await txn.runAsync(
+      `INSERT INTO ratings (id, day_key, metric_id, value, updated_at) VALUES (?, ?, ?, ?, ?)`,
+      rating.id,
+      rating.dayKey,
+      rating.metricId,
+      rating.value,
+      rating.updatedAt
+    );
+  });
+
   return rating;
 }
 
