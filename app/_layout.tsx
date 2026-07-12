@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -23,7 +23,7 @@ export { ErrorBoundary } from "expo-router";
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 function RootNavigator() {
-  const { ready, onboardingComplete, error } = useApp();
+  const { ready, onboardingComplete, error, refresh } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
@@ -49,6 +49,9 @@ function RootNavigator() {
     return (
       <View style={styles.boot}>
         <Text style={styles.errorText}>{error}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Retry startup" onPress={() => void refresh()} style={styles.retry}>
+          <Text style={styles.retryText}>Retry</Text>
+        </Pressable>
       </View>
     );
   }
@@ -106,6 +109,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 24,
     fontFamily: "Manrope_500Medium",
+    fontSize: 16,
+  },
+  retry: {
+    marginTop: 16,
+    minHeight: 48,
+    minWidth: 96,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: colors.accent,
+  },
+  retryText: {
+    color: colors.surface,
+    fontFamily: "Manrope_600SemiBold",
     fontSize: 16,
   },
 });

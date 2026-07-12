@@ -112,7 +112,7 @@ export default function MetricsScreen() {
                   await reorderMetrics(next);
                 }}
                 style={styles.iconBtn}
-                accessibilityLabel="Move up"
+                accessibilityLabel={`Move ${m.name} up`}
               >
                 <Text style={styles.iconText}>↑</Text>
               </Pressable>
@@ -127,7 +127,7 @@ export default function MetricsScreen() {
                   await reorderMetrics(next);
                 }}
                 style={styles.iconBtn}
-                accessibilityLabel="Move down"
+                accessibilityLabel={`Move ${m.name} down`}
               >
                 <Text style={styles.iconText}>↓</Text>
               </Pressable>
@@ -147,6 +147,7 @@ export default function MetricsScreen() {
                   );
                 }}
                 style={styles.iconBtn}
+                accessibilityLabel={`Archive ${m.name}`}
               >
                 <Text style={[styles.iconText, styles.danger]}>Archive</Text>
               </Pressable>
@@ -215,7 +216,12 @@ const styles = StyleSheet.create({
   hint: { ...type.caption, color: colors.inkTertiary },
   muted: { color: colors.inkTertiary },
   actions: { flexDirection: "row", alignItems: "center", gap: 4 },
-  iconBtn: { padding: space.sm },
+  iconBtn: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   iconText: { ...type.caption, color: colors.inkSecondary },
   danger: { color: colors.danger },
   restore: { ...type.bodyMedium, color: colors.accent },

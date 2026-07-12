@@ -5,11 +5,16 @@ let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
-    dbPromise = (async () => {
+    const opening = (async () => {
       const db = await SQLite.openDatabaseAsync("anvaya.db");
       await db.execAsync(SCHEMA_SQL);
       return db;
     })();
+    dbPromise = opening.catch((error: unknown) => {
+      // A transient native/database failure must not poison the session forever.
+      dbPromise = null;
+      throw error;
+    });
   }
   return dbPromise;
 }

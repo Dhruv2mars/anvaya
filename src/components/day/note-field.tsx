@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
@@ -13,6 +13,13 @@ export function NoteField({ dayKey, value, onCommit }: Props) {
   const [draft, setDraft] = useState(value);
   const dayRef = useRef(dayKey);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    []
+  );
 
   const scheduleCommit = (next: string) => {
     if (timerRef.current) clearTimeout(timerRef.current);
