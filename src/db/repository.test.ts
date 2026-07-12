@@ -65,4 +65,31 @@ describe("upsertRating", () => {
     );
     expect(database.runAsync).not.toHaveBeenCalled();
   });
+
+  it("updates an existing rating inside the exclusive transaction", async () => {
+    transaction.getFirstAsync.mockResolvedValueOnce({
+      id: "existing-id",
+      day_key: "2026-07-12",
+      metric_id: "energy",
+      value: 3,
+      updated_at: 1000,
+    });
+
+    const result = await upsertRating("2026-07-12", "energy", 4);
+
+    expect(transaction.runAsync).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("UPDATE ratings"),
+      4,
+      expect.any(Number),
+      "existing-id"
+    );
+    expect(result).toEqual({
+      id: "existing-id",
+      dayKey: "2026-07-12",
+      metricId: "energy",
+      value: 4,
+      updatedAt: expect.any(Number),
+    });
+  });
 });

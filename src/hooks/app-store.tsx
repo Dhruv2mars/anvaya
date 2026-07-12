@@ -77,6 +77,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const bootstrap = useCallback(async () => {
     try {
+      setReady(false);
       setError(null);
       const dbTimeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Database open timed out")), 12000)
@@ -139,8 +140,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const goToday = useCallback(async () => {
     const key = resolveHinduDayKey(new Date(), location);
-      setTodayKey(key);
-      await loadDay(key, location);
+    setTodayKey(key);
+    await loadDay(key, location);
   }, [loadDay, location]);
 
   const setRating = useCallback(
@@ -258,9 +259,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshLocation = useCallback(async () => {
     const { location: loc } = await resolveLocation({ requestPermission: true });
     setLocation(loc);
-      const key = resolveHinduDayKey(new Date(), loc);
-      setTodayKey(key);
-      await loadDay(selectedDayKey || key, loc);
+    const key = resolveHinduDayKey(new Date(), loc);
+    setTodayKey(key);
+    await loadDay(selectedDayKey || key, loc);
   }, [loadDay, selectedDayKey]);
 
   const refresh = useCallback(async () => {
