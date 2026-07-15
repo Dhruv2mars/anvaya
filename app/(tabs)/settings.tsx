@@ -1,10 +1,18 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 import Constants from "expo-constants";
 
 export default function SettingsScreen() {
   const { location, refreshLocation } = useApp();
+  const [updatingLocation, setUpdatingLocation] = useState(false);
+  const locationSource =
+    location.source === "gps"
+      ? "Current device location"
+      : location.source === "cached"
+        ? "Last known location"
+        : "Delhi fallback";
 
   return (
     <ScrollView
@@ -17,7 +25,7 @@ export default function SettingsScreen() {
       <View style={styles.block}>
         <Text style={styles.label}>Location</Text>
         <Text style={styles.body}>
-          Source: {location.source}
+          {locationSource}
           {"\n"}
           Lat {location.latitude.toFixed(4)}, Lon {location.longitude.toFixed(4)}
         </Text>
@@ -25,8 +33,27 @@ export default function SettingsScreen() {
           Used for sunrise and Panchang accuracy. Data stays on device. You can
           revoke access in system settings anytime.
         </Text>
-        <Pressable style={styles.btn} onPress={() => void refreshLocation()}>
-          <Text style={styles.btnText}>Update location</Text>
+        <Pressable
+          disabled={updatingLocation}
+          style={({ pressed }) => [
+            styles.btn,
+            updatingLocation && styles.btnDisabled,
+            pressed && !updatingLocation && styles.pressed,
+          ]}
+          onPress={async () => {
+            setUpdatingLocation(true);
+            try {
+              await refreshLocation();
+            } finally {
+              setUpdatingLocation(false);
+            }
+          }}
+        >
+          {updatingLocation ? (
+            <ActivityIndicator color={colors.accentPressed} />
+          ) : (
+            <Text style={styles.btnText}>Update location</Text>
+          )}
         </Pressable>
       </View>
 
@@ -80,4 +107,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   btnText: { ...type.bodyMedium, color: colors.ink },
+  btnDisabled: { opacity: 0.6 },
+  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
 });

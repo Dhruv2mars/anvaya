@@ -245,13 +245,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (name.trim()) await repo.createMetric(name.trim());
       }
       await repo.setSetting("onboarding_complete", "1");
-      setOnboardingComplete(true);
       await refreshMetrics();
       const { location: loc } = await resolveLocation({ requestPermission: true });
       setLocation(loc);
       const key = resolveHinduDayKey(new Date(), loc);
       setTodayKey(key);
       await loadDay(key, loc);
+      setOnboardingComplete(true);
     },
     [loadDay, refreshMetrics]
   );

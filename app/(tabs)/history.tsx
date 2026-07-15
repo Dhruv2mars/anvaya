@@ -52,9 +52,19 @@ export default function HistoryScreen() {
 
       <Text style={styles.section}>Days</Text>
       {history.length === 0 ? (
-        <Text style={styles.empty}>
-          Rated days and notes will gather here. Start on Today.
-        </Text>
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Your first day starts here</Text>
+          <Text style={styles.empty}>
+            Rate one measure today. Your days and patterns will gather here.
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.navigate("/")}
+            style={({ pressed }) => [styles.emptyAction, pressed && styles.pressed]}
+          >
+            <Text style={styles.emptyActionText}>Rate today</Text>
+          </Pressable>
+        </View>
       ) : (
         <View style={styles.list}>
           {history.map((d) => (
@@ -123,4 +133,17 @@ const styles = StyleSheet.create({
   note: { ...type.body, color: colors.ink, marginTop: 4 },
   chev: { ...type.title, color: colors.inkTertiary },
   empty: { ...type.body, color: colors.inkSecondary },
+  emptyState: { gap: space.sm, paddingVertical: space.lg },
+  emptyTitle: { ...type.headline, color: colors.ink },
+  emptyAction: {
+    minHeight: 48,
+    alignSelf: "flex-start",
+    justifyContent: "center",
+    marginTop: space.sm,
+    paddingHorizontal: space.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  emptyActionText: { ...type.bodyMedium, color: colors.surface },
+  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
 });

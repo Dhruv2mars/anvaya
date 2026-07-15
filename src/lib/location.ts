@@ -65,6 +65,21 @@ export async function resolveLocation(options?: {
 
   if (permission.status === Location.PermissionStatus.GRANTED) {
     try {
+      const lastKnown = await withTimeout(
+        Location.getLastKnownPositionAsync({ maxAge: 15 * 60 * 1000 }),
+        1500
+      );
+      if (lastKnown) {
+        const fix: LocationFix = {
+          latitude: lastKnown.coords.latitude,
+          longitude: lastKnown.coords.longitude,
+          altitude: lastKnown.coords.altitude ?? 0,
+          source: "gps",
+        };
+        await cacheLocation(fix);
+        return { location: fix, permission: permission.status };
+      }
+
       const pos = await withTimeout(
         Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,

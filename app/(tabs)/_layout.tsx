@@ -1,19 +1,15 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { colors } from "@/src/theme/tokens";
 
-function TabIcon({ glyph, focused }: { glyph: string; focused: boolean }) {
+type TabIconName = React.ComponentProps<typeof Ionicons>["name"];
+
+function TabIcon({ name, focused }: { name: TabIconName; focused: boolean }) {
   return (
     <View style={styles.iconWrap}>
-      <Text
-        style={[
-          styles.icon,
-          { color: focused ? colors.accent : colors.inkTertiary },
-        ]}
-      >
-        {glyph}
-      </Text>
+      <Ionicons name={name} size={22} color={focused ? colors.accent : colors.inkTertiary} />
       {focused ? <View style={styles.dot} /> : <View style={styles.dotSpacer} />}
     </View>
   );
@@ -53,7 +49,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Today",
-          tabBarIcon: ({ focused }) => <TabIcon glyph="◎" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "today" : "today-outline"} focused={focused} />,
           tabBarLabel: ({ focused }) => <TabLabel label="Today" focused={focused} />,
         }}
       />
@@ -61,7 +57,7 @@ export default function TabLayout() {
         name="history"
         options={{
           title: "History",
-          tabBarIcon: ({ focused }) => <TabIcon glyph="☰" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "calendar" : "calendar-outline"} focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel label="History" focused={focused} />
           ),
@@ -71,7 +67,7 @@ export default function TabLayout() {
         name="metrics"
         options={{
           title: "Metrics",
-          tabBarIcon: ({ focused }) => <TabIcon glyph="◇" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "options" : "options-outline"} focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel label="Metrics" focused={focused} />
           ),
@@ -81,7 +77,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ focused }) => <TabIcon glyph="⚙" focused={focused} />,
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "settings" : "settings-outline"} focused={focused} />,
           tabBarLabel: ({ focused }) => (
             <TabLabel label="Settings" focused={focused} />
           ),
@@ -97,11 +93,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 2,
     minHeight: 28,
-  },
-  icon: {
-    fontSize: 16,
-    lineHeight: 18,
-    fontFamily: "Manrope_600SemiBold",
   },
   dot: {
     width: 4,
