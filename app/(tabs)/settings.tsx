@@ -3,8 +3,10 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 import Constants from "expo-constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const { location, refreshLocation } = useApp();
   const [updatingLocation, setUpdatingLocation] = useState(false);
   const locationSource =
@@ -17,8 +19,11 @@ export default function SettingsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, space.sm) },
+      ]}
+      contentInsetAdjustmentBehavior="never"
     >
       <Text style={styles.title}>Settings</Text>
 

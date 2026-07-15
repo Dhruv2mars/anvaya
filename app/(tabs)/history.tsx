@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/src/hooks/app-store";
 import { formatShortDate } from "@/src/domain/day-key";
 import { formatPaksha } from "@/src/panchang/engine";
@@ -10,6 +11,7 @@ import * as repo from "@/src/db/repository";
 import type { Rating } from "@/src/domain/types";
 
 export default function HistoryScreen() {
+  const insets = useSafeAreaInsets();
   const { history, metrics, todayKey, selectDay } = useApp();
   const router = useRouter();
   const [allRatings, setAllRatings] = useState<Rating[]>([]);
@@ -26,8 +28,11 @@ export default function HistoryScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, space.sm) },
+      ]}
+      contentInsetAdjustmentBehavior="never"
     >
       <Text style={styles.title}>History</Text>
       <Text style={styles.lead}>Past days and quiet patterns. Tap a day to edit.</Text>
