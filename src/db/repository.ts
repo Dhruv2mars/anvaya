@@ -86,6 +86,42 @@ export async function listAllMetrics(): Promise<Metric[]> {
   return rows.map(mapMetric);
 }
 
+export function completeOnboardingSetup(metricNames: string[]): Promise<void> {
+  return runDbWrite(async () => {
+    const db = await getDb();
+    await db.withTransactionAsync(async () => {
+      const completed = await db.getFirstAsync<{ value: string }>(
+        `SELECT value FROM settings WHERE key = ?`,
+        "onboarding_complete"
+      );
+      if (completed?.value === "1") return;
+
+      const max = await db.getFirstAsync<{ m: number | null }>(
+        `SELECT MAX(sort_order) as m FROM metrics WHERE archived_at IS NULL`
+      );
+      let sortOrder = (max?.m ?? -1) + 1;
+      const now = Date.now();
+      for (const name of metricNames) {
+        const trimmed = name.trim();
+        if (!trimmed) continue;
+        await db.runAsync(
+          `INSERT INTO metrics (id, name, sort_order, archived_at, created_at) VALUES (?, ?, ?, NULL, ?)`,
+          nanoid(),
+          trimmed,
+          sortOrder++,
+          now
+        );
+      }
+      await db.runAsync(
+        `INSERT INTO settings (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        "onboarding_complete",
+        "1"
+      );
+    });
+  });
+}
+
 export function createMetric(name: string): Promise<Metric> {
   return runDbWrite(async () => {
     const db = await getDb();
@@ -128,8 +164,8 @@ export function archiveMetric(id: string): Promise<void> {
 export function deleteArchivedMetric(id: string): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (txn) => {
-      const metric = await txn.getFirstAsync<{ archived_at: number | null }>(
+    await db.withTransactionAsync(async () => {
+      const metric = await db.getFirstAsync<{ archived_at: number | null }>(
         `SELECT archived_at FROM metrics WHERE id = ?`,
         id
       );
@@ -138,8 +174,8 @@ export function deleteArchivedMetric(id: string): Promise<void> {
         throw new Error("Archive a metric before deleting it");
       }
 
-      await txn.runAsync(`DELETE FROM ratings WHERE metric_id = ?`, id);
-      await txn.runAsync(`DELETE FROM metrics WHERE id = ?`, id);
+      await db.runAsync(`DELETE FROM ratings WHERE metric_id = ?`, id);
+      await db.runAsync(`DELETE FROM metrics WHERE id = ?`, id);
     });
   });
 }

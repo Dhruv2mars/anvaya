@@ -41,6 +41,15 @@ async function cacheLocation(fix: LocationFix): Promise<void> {
   await setSetting(CACHE_KEY, JSON.stringify(fix));
 }
 
+function toLocationFix(position: Location.LocationObject): LocationFix {
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    altitude: position.coords.altitude ?? 0,
+    source: "gps",
+  };
+}
+
 /**
  * Resolve location for Panchang. Prefers GPS, then cache, then Delhi default.
  * Never throws — accuracy degrades gracefully when permission is unavailable.
@@ -48,6 +57,7 @@ async function cacheLocation(fix: LocationFix): Promise<void> {
  */
 export async function resolveLocation(options?: {
   requestPermission?: boolean;
+  forceCurrent?: boolean;
 }): Promise<{
   location: LocationFix;
   permission: Location.LocationPermissionResponse;
@@ -68,7 +78,12 @@ export async function resolveLocation(options?: {
     }
   };
 
-  let permission = await withTimeout(Location.getForegroundPermissionsAsync(), 2500);
+  let permission: Location.LocationPermissionResponse | null = null;
+  try {
+    permission = await withTimeout(Location.getForegroundPermissionsAsync(), 2500);
+  } catch {
+    // fall through to cache/default
+  }
   if (!permission) {
     const cached = await loadCachedLocation();
     return {
@@ -82,39 +97,31 @@ export async function resolveLocation(options?: {
     permission.status !== Location.PermissionStatus.GRANTED &&
     permission.canAskAgain
   ) {
-    permission = await requestForegroundPermission();
+    try {
+      permission = await requestForegroundPermission();
+    } catch {
+      // retain the last known permission state and use cache/default
+    }
   }
 
   if (permission.status === Location.PermissionStatus.GRANTED) {
     try {
-      const lastKnown = await withTimeout(
-        Location.getLastKnownPositionAsync({ maxAge: 15 * 60 * 1000 }),
-        1500
-      );
-      if (lastKnown) {
-        const fix: LocationFix = {
-          latitude: lastKnown.coords.latitude,
-          longitude: lastKnown.coords.longitude,
-          altitude: lastKnown.coords.altitude ?? 0,
-          source: "gps",
-        };
-        await cacheLocation(fix);
-        return { location: fix, permission };
-      }
+      const getCurrent = () =>
+        withTimeout(
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          5000
+        );
+      const getLastKnown = () =>
+        withTimeout(
+          Location.getLastKnownPositionAsync({ maxAge: 15 * 60 * 1000 }),
+          1500
+        );
+      const position = options?.forceCurrent
+        ? (await getCurrent()) ?? (await getLastKnown())
+        : (await getLastKnown()) ?? (await getCurrent());
 
-      const pos = await withTimeout(
-        Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        }),
-        5000
-      );
-      if (pos) {
-        const fix: LocationFix = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          altitude: pos.coords.altitude ?? 0,
-          source: "gps",
-        };
+      if (position) {
+        const fix = toLocationFix(position);
         await cacheLocation(fix);
         return { location: fix, permission };
       }

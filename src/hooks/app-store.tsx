@@ -262,27 +262,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const completeOnboarding = useCallback(
     async (metricNames: string[]) => {
-      for (const name of metricNames) {
-        if (name.trim()) await repo.createMetric(name.trim());
-      }
-      await repo.setSetting("onboarding_complete", "1");
+      await repo.completeOnboardingSetup(metricNames);
       await refreshMetrics();
       const { location: loc, permission } = await resolveLocation({
         requestPermission: true,
+        forceCurrent: true,
       });
       setLocation(loc);
       setLocationPermission(permission);
       const key = resolveHinduDayKey(new Date(), loc);
       setTodayKey(key);
-      await loadDay(key, loc);
       setOnboardingComplete(true);
+      await loadDay(key, loc);
     },
     [loadDay, refreshMetrics]
   );
 
   const refreshLocation = useCallback(
     async (requestPermission = true) => {
-      const { location: loc, permission } = await resolveLocation({ requestPermission });
+      const { location: loc, permission } = await resolveLocation({
+        requestPermission,
+        forceCurrent: true,
+      });
       const wasViewingToday = !selectedDayKey || selectedDayKey === todayKey;
       setLocation(loc);
       setLocationPermission(permission);

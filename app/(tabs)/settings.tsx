@@ -56,7 +56,9 @@ export default function SettingsScreen() {
   } = getLocationPermissionPresentation(locationPermission);
   const locationSource =
     location.source === "gps"
-      ? "Current device location"
+      ? locationPermission.android?.accuracy === "coarse"
+        ? "Approximate device location"
+        : "Current device location"
       : location.source === "cached"
         ? "Last known location"
         : "Delhi fallback";
@@ -101,7 +103,11 @@ export default function SettingsScreen() {
           onPress={async () => {
             if (permissionBlocked) {
               waitingForSettings.current = true;
-              await Linking.openSettings();
+              try {
+                await Linking.openSettings();
+              } catch {
+                waitingForSettings.current = false;
+              }
               return;
             }
 

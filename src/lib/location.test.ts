@@ -80,6 +80,22 @@ describe("resolveLocation", () => {
     });
   });
 
+  it("prefers a current fix for an explicit refresh", async () => {
+    location.getForegroundPermissionsAsync.mockResolvedValue(permission("granted", true));
+    location.getLastKnownPositionAsync.mockResolvedValue({
+      coords: { latitude: 28.6, longitude: 77.2, altitude: 200 },
+    });
+    location.getCurrentPositionAsync.mockResolvedValue({
+      coords: { latitude: 19.076, longitude: 72.8777, altitude: 14 },
+    });
+
+    const result = await resolveLocation({ forceCurrent: true });
+
+    expect(location.getCurrentPositionAsync).toHaveBeenCalledTimes(1);
+    expect(location.getLastKnownPositionAsync).not.toHaveBeenCalled();
+    expect(result.location).toMatchObject({ latitude: 19.076, longitude: 72.8777 });
+  });
+
   it("returns and caches the exact coordinates supplied to Panchang callers", async () => {
     location.getForegroundPermissionsAsync.mockResolvedValue(permission("granted", true));
     location.getLastKnownPositionAsync.mockResolvedValue({

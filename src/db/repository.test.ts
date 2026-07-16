@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb, resetDbSingleton } from "./client";
-import { deleteArchivedMetric, setDayNote, upsertRating } from "./repository";
+import {
+  completeOnboardingSetup,
+  deleteArchivedMetric,
+  setDayNote,
+  upsertRating,
+} from "./repository";
 
 const sqlite = vi.hoisted(() => ({
   openDatabaseAsync: vi.fn(),
@@ -17,6 +22,7 @@ const database = {
   execAsync: vi.fn(),
   getFirstAsync: vi.fn(),
   runAsync: vi.fn(),
+  withTransactionAsync: vi.fn(),
   withExclusiveTransactionAsync: vi.fn(),
 };
 
@@ -27,6 +33,9 @@ beforeEach(() => {
   database.execAsync.mockResolvedValue(undefined);
   transaction.getFirstAsync.mockResolvedValue(null);
   transaction.runAsync.mockResolvedValue({ changes: 1, lastInsertRowId: 1 });
+  database.withTransactionAsync.mockImplementation(
+    async (task: (txn: typeof transaction) => Promise<void>) => task(transaction)
+  );
   database.withExclusiveTransactionAsync.mockImplementation(
     async (task: (txn: typeof transaction) => Promise<void>) => task(transaction)
   );
@@ -133,51 +142,81 @@ describe("upsertRating", () => {
   });
 });
 
+describe("completeOnboardingSetup", () => {
+  it("persists initial metrics and completion in one transaction", async () => {
+    database.getFirstAsync
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ m: null });
+
+    await completeOnboardingSetup(["Energy", "Focus"]);
+
+    expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(database.runAsync).toHaveBeenCalledTimes(3);
+    expect(database.runAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("INSERT INTO metrics"),
+      expect.any(String),
+      "Energy",
+      0,
+      expect.any(Number)
+    );
+    expect(database.runAsync).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("INSERT INTO metrics"),
+      expect.any(String),
+      "Focus",
+      1,
+      expect.any(Number)
+    );
+    expect(database.runAsync).toHaveBeenNthCalledWith(
+      3,
+      expect.stringContaining("INSERT INTO settings"),
+      "onboarding_complete",
+      "1"
+    );
+  });
+
+  it("does not duplicate metrics when an interrupted setup is retried", async () => {
+    database.getFirstAsync.mockResolvedValueOnce({ value: "1" });
+
+    await completeOnboardingSetup(["Energy", "Focus"]);
+
+    expect(database.runAsync).not.toHaveBeenCalled();
+  });
+});
+
 describe("deleteArchivedMetric", () => {
   it("deletes an archived metric and all of its ratings in one transaction", async () => {
-    transaction.getFirstAsync.mockResolvedValueOnce({
-      id: "energy",
-      name: "Energy",
-      sort_order: 0,
-      archived_at: 1234,
-      created_at: 1000,
-    });
+    database.getFirstAsync.mockResolvedValueOnce({ archived_at: 1234 });
 
     await deleteArchivedMetric("energy");
 
-    expect(database.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
-    expect(transaction.runAsync).toHaveBeenNthCalledWith(
+    expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(database.runAsync).toHaveBeenNthCalledWith(
       1,
       expect.stringContaining("DELETE FROM ratings"),
       "energy"
     );
-    expect(transaction.runAsync).toHaveBeenNthCalledWith(
+    expect(database.runAsync).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining("DELETE FROM metrics"),
       "energy"
     );
-    expect(database.runAsync).not.toHaveBeenCalled();
   });
 
   it("refuses to delete an active metric or its ratings", async () => {
-    transaction.getFirstAsync.mockResolvedValueOnce({
-      id: "energy",
-      name: "Energy",
-      sort_order: 0,
-      archived_at: null,
-      created_at: 1000,
-    });
+    database.getFirstAsync.mockResolvedValueOnce({ archived_at: null });
 
     await expect(deleteArchivedMetric("energy")).rejects.toThrow(
       "Archive a metric before deleting it"
     );
-    expect(transaction.runAsync).not.toHaveBeenCalled();
+    expect(database.runAsync).not.toHaveBeenCalled();
   });
 
   it("refuses to delete a missing metric", async () => {
-    transaction.getFirstAsync.mockResolvedValueOnce(null);
+    database.getFirstAsync.mockResolvedValueOnce(null);
 
     await expect(deleteArchivedMetric("missing")).rejects.toThrow("Metric not found");
-    expect(transaction.runAsync).not.toHaveBeenCalled();
+    expect(database.runAsync).not.toHaveBeenCalled();
   });
 });
