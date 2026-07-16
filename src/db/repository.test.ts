@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb, resetDbSingleton } from "./client";
-import { upsertRating } from "./repository";
+import { deleteArchivedMetric, setDayNote, upsertRating } from "./repository";
 
 const sqlite = vi.hoisted(() => ({
   openDatabaseAsync: vi.fn(),
@@ -91,5 +91,93 @@ describe("upsertRating", () => {
       value: 4,
       updatedAt: expect.any(Number),
     });
+  });
+
+  it("finishes a rating transaction before starting a concurrent note write", async () => {
+    let releaseTransaction!: () => void;
+    const transactionGate = new Promise<void>((resolve) => {
+      releaseTransaction = resolve;
+    });
+    database.withExclusiveTransactionAsync.mockImplementationOnce(
+      async (task: (txn: typeof transaction) => Promise<void>) => {
+        await task(transaction);
+        await transactionGate;
+      }
+    );
+    database.getFirstAsync.mockResolvedValue(null);
+    database.runAsync.mockResolvedValue({ changes: 1, lastInsertRowId: 1 });
+
+    const ratingWrite = upsertRating("2026-07-12", "energy", 5);
+    await vi.waitFor(() => expect(database.withExclusiveTransactionAsync).toHaveBeenCalledOnce());
+
+    const noteWrite = setDayNote("2026-07-12", "Good day");
+    await Promise.resolve();
+
+    expect(database.getFirstAsync).not.toHaveBeenCalled();
+    expect(database.runAsync).not.toHaveBeenCalled();
+
+    releaseTransaction();
+    await Promise.all([ratingWrite, noteWrite]);
+
+    expect(database.getFirstAsync).toHaveBeenCalledWith(
+      expect.stringContaining("SELECT * FROM days"),
+      "2026-07-12"
+    );
+    expect(database.runAsync).toHaveBeenCalledWith(
+      expect.stringContaining("INSERT INTO days"),
+      "2026-07-12",
+      "Good day",
+      expect.any(Number),
+      expect.any(Number)
+    );
+  });
+});
+
+describe("deleteArchivedMetric", () => {
+  it("deletes an archived metric and all of its ratings in one transaction", async () => {
+    transaction.getFirstAsync.mockResolvedValueOnce({
+      id: "energy",
+      name: "Energy",
+      sort_order: 0,
+      archived_at: 1234,
+      created_at: 1000,
+    });
+
+    await deleteArchivedMetric("energy");
+
+    expect(database.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(transaction.runAsync).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining("DELETE FROM ratings"),
+      "energy"
+    );
+    expect(transaction.runAsync).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining("DELETE FROM metrics"),
+      "energy"
+    );
+    expect(database.runAsync).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete an active metric or its ratings", async () => {
+    transaction.getFirstAsync.mockResolvedValueOnce({
+      id: "energy",
+      name: "Energy",
+      sort_order: 0,
+      archived_at: null,
+      created_at: 1000,
+    });
+
+    await expect(deleteArchivedMetric("energy")).rejects.toThrow(
+      "Archive a metric before deleting it"
+    );
+    expect(transaction.runAsync).not.toHaveBeenCalled();
+  });
+
+  it("refuses to delete a missing metric", async () => {
+    transaction.getFirstAsync.mockResolvedValueOnce(null);
+
+    await expect(deleteArchivedMetric("missing")).rejects.toThrow("Metric not found");
+    expect(transaction.runAsync).not.toHaveBeenCalled();
   });
 });

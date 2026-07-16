@@ -1,20 +1,75 @@
-import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { PermissionStatus, type LocationPermissionResponse } from "expo-location";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 import Constants from "expo-constants";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+function getLocationPermissionPresentation(permission: LocationPermissionResponse) {
+  if (permission.status === PermissionStatus.GRANTED) {
+    return {
+      blocked: false,
+      actionLabel: "Update location",
+      hint: "Used for sunrise and Panchang accuracy. Data stays on device. You can revoke access in system settings anytime.",
+    };
+  }
+  if (permission.status === PermissionStatus.DENIED && !permission.canAskAgain) {
+    return {
+      blocked: true,
+      actionLabel: "Open settings",
+      hint: "Location access is blocked. Open system settings to allow it, then return here.",
+    };
+  }
+  if (permission.status === PermissionStatus.DENIED) {
+    return {
+      blocked: false,
+      actionLabel: "Try location again",
+      hint: "Location access was denied. You can try again or keep using the current fallback.",
+    };
+  }
+  return {
+    blocked: false,
+    actionLabel: "Allow location",
+    hint: "Allow location for accurate sunrise and Panchang calculations at your current place.",
+  };
+}
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { location, refreshLocation } = useApp();
+  const { location, locationPermission, refreshLocation } = useApp();
   const [updatingLocation, setUpdatingLocation] = useState(false);
+  const waitingForSettings = useRef(false);
+  const {
+    blocked: permissionBlocked,
+    actionLabel,
+    hint: permissionHint,
+  } = getLocationPermissionPresentation(locationPermission);
   const locationSource =
     location.source === "gps"
       ? "Current device location"
       : location.source === "cached"
         ? "Last known location"
         : "Delhi fallback";
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active" || !waitingForSettings.current) return;
+      waitingForSettings.current = false;
+      setUpdatingLocation(true);
+      void refreshLocation(false).finally(() => setUpdatingLocation(false));
+    });
+    return () => sub.remove();
+  }, [refreshLocation]);
 
   return (
     <ScrollView
@@ -34,10 +89,7 @@ export default function SettingsScreen() {
           {"\n"}
           Lat {location.latitude.toFixed(4)}, Lon {location.longitude.toFixed(4)}
         </Text>
-        <Text style={styles.hint}>
-          Used for sunrise and Panchang accuracy. Data stays on device. You can
-          revoke access in system settings anytime.
-        </Text>
+        <Text style={styles.hint}>{permissionHint}</Text>
         <Pressable
           disabled={updatingLocation}
           style={({ pressed }) => [
@@ -45,10 +97,17 @@ export default function SettingsScreen() {
             updatingLocation && styles.btnDisabled,
             pressed && !updatingLocation && styles.pressed,
           ]}
+          accessibilityRole="button"
           onPress={async () => {
+            if (permissionBlocked) {
+              waitingForSettings.current = true;
+              await Linking.openSettings();
+              return;
+            }
+
             setUpdatingLocation(true);
             try {
-              await refreshLocation();
+              await refreshLocation(true);
             } finally {
               setUpdatingLocation(false);
             }
@@ -57,7 +116,7 @@ export default function SettingsScreen() {
           {updatingLocation ? (
             <ActivityIndicator color={colors.accentPressed} />
           ) : (
-            <Text style={styles.btnText}>Update location</Text>
+            <Text style={styles.btnText}>{actionLabel}</Text>
           )}
         </Pressable>
       </View>

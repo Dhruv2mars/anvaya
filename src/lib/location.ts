@@ -3,6 +3,22 @@ import { DEFAULT_LOCATION, type LocationFix } from "@/src/domain/types";
 import { getSetting, setSetting } from "@/src/db/repository";
 
 const CACHE_KEY = "location_cache";
+export const INITIAL_LOCATION_PERMISSION: Location.LocationPermissionResponse = {
+  status: Location.PermissionStatus.UNDETERMINED,
+  granted: false,
+  canAskAgain: true,
+  expires: "never",
+};
+let permissionRequest: Promise<Location.LocationPermissionResponse> | null = null;
+
+function requestForegroundPermission(): Promise<Location.LocationPermissionResponse> {
+  if (!permissionRequest) {
+    permissionRequest = Location.requestForegroundPermissionsAsync().finally(() => {
+      permissionRequest = null;
+    });
+  }
+  return permissionRequest;
+}
 
 export async function loadCachedLocation(): Promise<LocationFix | null> {
   const raw = await getSetting(CACHE_KEY);
@@ -27,12 +43,15 @@ async function cacheLocation(fix: LocationFix): Promise<void> {
 
 /**
  * Resolve location for Panchang. Prefers GPS, then cache, then Delhi default.
- * Never throws — accuracy degrades gracefully when permission denied.
- * Times out quickly so the UI is never blocked on geolocation prompts.
+ * Never throws — accuracy degrades gracefully when permission is unavailable.
+ * Native permission requests remain pending until the user answers and are single-flight.
  */
 export async function resolveLocation(options?: {
   requestPermission?: boolean;
-}): Promise<{ location: LocationFix; permission: Location.PermissionStatus }> {
+}): Promise<{
+  location: LocationFix;
+  permission: Location.LocationPermissionResponse;
+}> {
   const request = options?.requestPermission ?? false;
 
   const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T | null> => {
@@ -54,13 +73,16 @@ export async function resolveLocation(options?: {
     const cached = await loadCachedLocation();
     return {
       location: cached ?? DEFAULT_LOCATION,
-      permission: Location.PermissionStatus.UNDETERMINED,
+      permission: INITIAL_LOCATION_PERMISSION,
     };
   }
 
-  if (request && permission.status !== Location.PermissionStatus.GRANTED) {
-    const asked = await withTimeout(Location.requestForegroundPermissionsAsync(), 8000);
-    if (asked) permission = asked;
+  if (
+    request &&
+    permission.status !== Location.PermissionStatus.GRANTED &&
+    permission.canAskAgain
+  ) {
+    permission = await requestForegroundPermission();
   }
 
   if (permission.status === Location.PermissionStatus.GRANTED) {
@@ -77,7 +99,7 @@ export async function resolveLocation(options?: {
           source: "gps",
         };
         await cacheLocation(fix);
-        return { location: fix, permission: permission.status };
+        return { location: fix, permission };
       }
 
       const pos = await withTimeout(
@@ -94,7 +116,7 @@ export async function resolveLocation(options?: {
           source: "gps",
         };
         await cacheLocation(fix);
-        return { location: fix, permission: permission.status };
+        return { location: fix, permission };
       }
     } catch {
       // fall through to cache/default
@@ -103,8 +125,8 @@ export async function resolveLocation(options?: {
 
   const cached = await loadCachedLocation();
   if (cached) {
-    return { location: cached, permission: permission.status };
+    return { location: cached, permission };
   }
 
-  return { location: DEFAULT_LOCATION, permission: permission.status };
+  return { location: DEFAULT_LOCATION, permission };
 }
