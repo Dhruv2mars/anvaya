@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
+import { PressableScale } from "@/src/components/ui/pressable-scale";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
@@ -15,17 +16,17 @@ export function RatingRow({ value, onChange, onClear }: Props) {
         const active = value !== null && n <= value;
         const selected = value === n;
         return (
-          <Pressable
+          <PressableScale
             key={n}
             accessibilityLabel={`Rate ${n}`}
             accessibilityState={{ selected }}
-            hitSlop={6}
+            hitSlop={4}
             onPress={() => {
               void Haptics.selectionAsync();
               if (value === n && onClear) onClear();
               else onChange(n);
             }}
-            style={({ pressed }) => [styles.hit, pressed && styles.pressed]}
+            style={styles.hit}
           >
             <View
               style={[
@@ -44,7 +45,7 @@ export function RatingRow({ value, onChange, onClear }: Props) {
                 {n}
               </Text>
             </View>
-          </Pressable>
+          </PressableScale>
         );
       })}
     </View>
@@ -62,10 +63,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     alignItems: "center",
     justifyContent: "center",
-  },
-  pressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.94 }],
   },
   dot: {
     width: 44,
@@ -92,6 +89,6 @@ const styles = StyleSheet.create({
     fontFamily: "Manrope_700Bold",
   },
   numSelected: {
-    color: colors.surface,
+    color: colors.accentOn,
   },
 });

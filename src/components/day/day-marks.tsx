@@ -1,7 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { PanchangSnapshot } from "@/src/domain/types";
 import { formatTimeAtLongitude } from "@/src/domain/day-key";
-import { formatPaksha } from "@/src/panchang/engine";
+import {
+  formatLunarDayLine,
+  formatMarksSecondary,
+} from "@/src/domain/display";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
@@ -9,17 +12,17 @@ type Props = {
   locationLabel: string;
 };
 
-export function PanchangStrip({ panchang, locationLabel }: Props) {
+/** Lunar and solar day marks for the selected sunrise-based day. */
+export function DayMarks({ panchang, locationLabel }: Props) {
   const sunrise = formatTimeAtLongitude(panchang.sunrise, panchang.longitude);
+  const primary = formatLunarDayLine(panchang.tithi, panchang.paksha);
+  const secondary = formatMarksSecondary(panchang.vaar, panchang.masa, panchang.nakshatra);
 
   return (
     <View style={styles.wrap} accessibilityRole="summary">
-      <Text style={styles.primary}>
-        {panchang.tithi} · {formatPaksha(panchang.paksha)}
-      </Text>
-      <Text style={styles.secondary}>
-        {panchang.vaar} · {panchang.masa} · {panchang.nakshatra}
-      </Text>
+      <Text style={styles.kicker}>Day marks</Text>
+      {primary ? <Text style={styles.primary}>{primary}</Text> : null}
+      {secondary ? <Text style={styles.secondary}>{secondary}</Text> : null}
       <Text style={styles.meta}>
         Sunrise {sunrise} · {locationLabel}
       </Text>
@@ -30,15 +33,19 @@ export function PanchangStrip({ panchang, locationLabel }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     gap: space.xs,
-    paddingVertical: space.lg,
+    paddingVertical: space.xl,
     paddingHorizontal: space.lg,
-    backgroundColor: colors.panchangWash,
+    backgroundColor: colors.marksWash,
     borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.borderSubtle,
+    overflow: "hidden",
+  },
+  kicker: {
+    ...type.caption,
+    color: colors.inkTertiary,
+    marginBottom: space.xs,
   },
   primary: {
-    ...type.panchang,
+    ...type.marks,
     color: colors.ink,
   },
   secondary: {
@@ -48,6 +55,6 @@ const styles = StyleSheet.create({
   meta: {
     ...type.caption,
     color: colors.inkTertiary,
-    marginTop: space.xs,
+    marginTop: space.sm,
   },
 });

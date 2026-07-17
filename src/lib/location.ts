@@ -54,7 +54,7 @@ function toLocationFix(
 }
 
 /**
- * Resolve location for Panchang. Prefers GPS, then cache, then Delhi default.
+ * Resolve location for day marks. Prefers GPS, then cache, then Delhi default.
  * Never throws — accuracy degrades gracefully when permission is unavailable.
  * Native permission requests remain pending until the user answers and are single-flight.
  */

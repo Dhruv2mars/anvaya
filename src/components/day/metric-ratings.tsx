@@ -16,9 +16,9 @@ export function MetricRatings({ metrics, ratings, onRate, onClear }: Props) {
   if (metrics.length === 0) {
     return (
       <View style={styles.empty}>
-        <Text style={styles.emptyTitle}>No metrics yet</Text>
+        <Text style={styles.emptyTitle}>No measures yet</Text>
         <Text style={styles.emptyBody}>
-          Add a few personal measures in Metrics — energy, focus, calm, whatever
+          Add a few personal measures in Measures — energy, focus, calm, whatever
           you want to track beside the day.
         </Text>
       </View>

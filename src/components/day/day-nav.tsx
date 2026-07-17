@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { PressableScale } from "@/src/components/ui/pressable-scale";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
@@ -15,29 +16,30 @@ export function DayNav({ dayKey, todayKey, title, onPrev, onNext, onToday }: Pro
 
   return (
     <View style={styles.row}>
-      <Pressable
+      <PressableScale
         onPress={onPrev}
         accessibilityLabel="Previous day"
-        hitSlop={12}
+        hitSlop={8}
         style={styles.chev}
       >
         <Text style={styles.chevText}>‹</Text>
-      </Pressable>
+      </PressableScale>
 
-      <Pressable onPress={onToday} style={styles.center} accessibilityRole="header">
+      <PressableScale onPress={onToday} style={styles.center} accessibilityRole="header">
         <Text style={styles.title}>{title}</Text>
         {!isToday ? <Text style={styles.jump}>Jump to today</Text> : null}
-      </Pressable>
+      </PressableScale>
 
-      <Pressable
+      <PressableScale
         onPress={onNext}
         disabled={isToday}
         accessibilityLabel="Next day"
-        hitSlop={12}
+        accessibilityState={{ disabled: isToday }}
+        hitSlop={8}
         style={[styles.chev, isToday && styles.disabled]}
       >
         <Text style={[styles.chevText, isToday && styles.disabledText]}>›</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -50,10 +52,10 @@ const styles = StyleSheet.create({
     gap: space.md,
   },
   chev: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -66,6 +68,7 @@ const styles = StyleSheet.create({
   center: {
     flex: 1,
     alignItems: "center",
+    paddingVertical: space.xs,
   },
   title: {
     ...type.display,
