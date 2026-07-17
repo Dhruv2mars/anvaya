@@ -1,20 +1,20 @@
 # Anvaya — Play Store listing copy
 
 ## Short description
-Track life beside the Hindu Panchang — daily ratings, notes, sunrise-true days.
+Track your days beside lunar and solar marks — ratings, notes, sunrise-true days.
 
 ## Full description
-Anvaya is a calm, local-first companion for noticing your days through the Hindu Panchang.
+Anvaya is a calm, local-first companion for noticing your days beside the calendar.
 
-Open the app and see today’s Tithi, Vaar, and Paksha immediately. Rate a few personal metrics from 1–5, optionally add one short note, and leave. Everything autosaves. No account. No cloud required.
+Open the app and see today’s lunar and solar day marks immediately. Rate a few personal measures from 1–5, optionally add one short note, and leave. Everything autosaves. No account. No cloud required.
 
 **Made for the daily loop**
-• Accurate Panchang for your location (sunrise-based Hindu day)
-• Custom metrics you create, rename, reorder, or archive
+• Accurate day marks for your location (sunrise-based day)
+• Custom measures you create, rename, reorder, or archive
 • History you can browse and edit
-• Deterministic patterns — averages and streaks, not astrology theatre
+• Deterministic patterns — averages and streaks, not predictions
 • Works offline for logging and review
 
-Anvaya is not a temple app, habit streak game, or horoscope feed. It is a quiet ledger for life beside the calendar that already structures many days.
+Anvaya is not a habit streak game or forecast feed. It is a quiet ledger for life beside the rhythm of the day.
 
-Location is optional but recommended for accurate sunrise and Panchang. All data stays on your device in this version.
+Location is optional but recommended for accurate sunrise and day marks. All data stays on your device in this version.

@@ -1,16 +1,17 @@
 import { useMemo } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { StyleSheet, Text, View } from "react-native";
 import { DayNav } from "@/src/components/day/day-nav";
 import { MetricRatings } from "@/src/components/day/metric-ratings";
 import { NoteField } from "@/src/components/day/note-field";
-import { PanchangStrip } from "@/src/components/day/panchang-strip";
+import { DayMarks } from "@/src/components/day/day-marks";
+import { BrandHeader } from "@/src/components/ui/brand-header";
+import { FadeIn } from "@/src/components/ui/fade-in";
+import { Screen } from "@/src/components/ui/screen";
 import { formatDayHeading, shiftDayKey } from "@/src/domain/day-key";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, space, type } from "@/src/theme/tokens";
 
 export default function TodayScreen() {
-  const insets = useSafeAreaInsets();
   const {
     todayKey,
     selectedDayKey,
@@ -48,83 +49,63 @@ export default function TodayScreen() {
   }, [metrics, allMetrics, ratings]);
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: Math.max(insets.top, space.sm) },
-      ]}
-      contentInsetAdjustmentBehavior="never"
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.brand}>Anvaya</Text>
-      <Text style={styles.tagline}>Life beside the Panchang</Text>
+    <Screen>
+      <BrandHeader tagline="Your days, your rhythm" />
 
-      <DayNav
-        dayKey={selectedDayKey}
-        todayKey={todayKey}
-        title={title}
-        onPrev={() => void selectDay(shiftDayKey(selectedDayKey, -1))}
-        onNext={() => {
-          if (selectedDayKey < todayKey) {
-            void selectDay(shiftDayKey(selectedDayKey, 1));
-          }
-        }}
-        onToday={() => void goToday()}
-      />
-
-      {panchang ? (
-        <PanchangStrip panchang={panchang} locationLabel={locationLabel} />
-      ) : (
-        <Text style={styles.loading}>Computing Panchang…</Text>
-      )}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ratings</Text>
-        <MetricRatings
-          metrics={visibleMetrics}
-          ratings={ratings}
-          onRate={(id, v) => void setRating(id, v)}
-          onClear={(id) => void clearRating(id)}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <NoteField
-          key={selectedDayKey}
+      <FadeIn delay={40}>
+        <DayNav
           dayKey={selectedDayKey}
-          value={day?.note ?? ""}
-          onCommit={(n) => void setNote(n)}
+          todayKey={todayKey}
+          title={title}
+          onPrev={() => void selectDay(shiftDayKey(selectedDayKey, -1))}
+          onNext={() => {
+            if (selectedDayKey < todayKey) {
+              void selectDay(shiftDayKey(selectedDayKey, 1));
+            }
+          }}
+          onToday={() => void goToday()}
         />
-      </View>
-    </ScrollView>
+      </FadeIn>
+
+      <FadeIn delay={80}>
+        {panchang ? (
+          <DayMarks panchang={panchang} locationLabel={locationLabel} />
+        ) : (
+          <Text style={styles.loading}>Computing day marks…</Text>
+        )}
+      </FadeIn>
+
+      <FadeIn delay={120}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ratings</Text>
+          <MetricRatings
+            metrics={visibleMetrics}
+            ratings={ratings}
+            onRate={(id, v) => void setRating(id, v)}
+            onClear={(id) => void clearRating(id)}
+          />
+        </View>
+      </FadeIn>
+
+      <FadeIn delay={160}>
+        <View style={styles.section}>
+          <NoteField
+            key={selectedDayKey}
+            dayKey={selectedDayKey}
+            value={day?.note ?? ""}
+            onCommit={(n) => void setNote(n)}
+          />
+        </View>
+      </FadeIn>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    paddingHorizontal: space.xl,
-    paddingBottom: space.xxxl,
-    gap: space.lg,
-  },
-  brand: {
-    ...type.label,
-    color: colors.accent,
-    letterSpacing: 0.6,
-  },
-  tagline: {
-    ...type.caption,
-    color: colors.inkTertiary,
-    marginTop: -space.sm,
-    marginBottom: space.xs,
-  },
   loading: {
     ...type.body,
     color: colors.inkTertiary,
+    paddingVertical: space.lg,
   },
   section: {
     gap: space.md,

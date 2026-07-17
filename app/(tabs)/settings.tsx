@@ -1,26 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   AppState,
   Linking,
-  Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import { PermissionStatus, type LocationPermissionResponse } from "expo-location";
+import Constants from "expo-constants";
+import { Button } from "@/src/components/ui/button";
+import { FadeIn } from "@/src/components/ui/fade-in";
+import { Screen } from "@/src/components/ui/screen";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
-import Constants from "expo-constants";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function getLocationPermissionPresentation(permission: LocationPermissionResponse) {
   if (permission.status === PermissionStatus.GRANTED) {
     return {
       blocked: false,
       actionLabel: "Update location",
-      hint: "Used for sunrise and Panchang accuracy. Data stays on device. You can revoke access in system settings anytime.",
+      hint: "Used for sunrise and day-mark accuracy. Data stays on device. You can revoke access in system settings anytime.",
     };
   }
   if (permission.status === PermissionStatus.DENIED && !permission.canAskAgain) {
@@ -40,12 +39,11 @@ function getLocationPermissionPresentation(permission: LocationPermissionRespons
   return {
     blocked: false,
     actionLabel: "Allow location",
-    hint: "Allow location for accurate sunrise and Panchang calculations at your current place.",
+    hint: "Allow location for accurate sunrise and day marks at your current place.",
   };
 }
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
   const { location, locationPermission, refreshLocation } = useApp();
   const [updatingLocation, setUpdatingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -78,106 +76,90 @@ export default function SettingsScreen() {
   }, [refreshLocation]);
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: Math.max(insets.top, space.sm) },
-      ]}
-      contentInsetAdjustmentBehavior="never"
-    >
-      <Text style={styles.title}>Settings</Text>
+    <Screen>
+      <FadeIn>
+        <Text style={styles.title}>Settings</Text>
+      </FadeIn>
 
-      <View style={styles.block}>
-        <Text style={styles.label}>Location</Text>
-        <Text style={styles.body}>
-          {locationSource}
-          {"\n"}
-          Lat {location.latitude.toFixed(4)}, Lon {location.longitude.toFixed(4)}
-        </Text>
-        <Text style={styles.hint}>{permissionHint}</Text>
-        <Pressable
-          disabled={updatingLocation}
-          style={({ pressed }) => [
-            styles.btn,
-            updatingLocation && styles.btnDisabled,
-            pressed && !updatingLocation && styles.pressed,
-          ]}
-          accessibilityRole="button"
-          onPress={async () => {
-            if (permissionBlocked) {
-              waitingForSettings.current = true;
-              setLocationError(null);
-              try {
-                await Linking.openSettings();
-              } catch {
-                waitingForSettings.current = false;
-                setLocationError("Couldn’t open system settings.");
-              }
-              return;
-            }
-
-            setLocationError(null);
-            setUpdatingLocation(true);
-            try {
-              await refreshLocation(true);
-            } catch {
-              setLocationError("Couldn’t update location. Try again.");
-            } finally {
-              setUpdatingLocation(false);
-            }
-          }}
-        >
-          {updatingLocation ? (
-            <ActivityIndicator color={colors.accentPressed} />
-          ) : (
-            <Text style={styles.btnText}>{actionLabel}</Text>
-          )}
-        </Pressable>
-        {locationError ? (
-          <Text style={styles.error} accessibilityLiveRegion="polite">
-            {locationError}
+      <FadeIn delay={40}>
+        <View style={styles.block}>
+          <Text style={styles.label}>Location</Text>
+          <Text style={styles.body}>
+            {locationSource}
+            {"\n"}
+            Lat {location.latitude.toFixed(4)}, Lon {location.longitude.toFixed(4)}
           </Text>
-        ) : null}
-      </View>
+          <Text style={styles.hint}>{permissionHint}</Text>
+          <Button
+            label={actionLabel}
+            variant="tonal"
+            busy={updatingLocation}
+            style={styles.btn}
+            onPress={async () => {
+              if (permissionBlocked) {
+                waitingForSettings.current = true;
+                setLocationError(null);
+                try {
+                  await Linking.openSettings();
+                } catch {
+                  waitingForSettings.current = false;
+                  setLocationError("Couldn’t open system settings.");
+                }
+                return;
+              }
 
-      <View style={styles.block}>
-        <Text style={styles.label}>Privacy</Text>
-        <Text style={styles.body}>
-          Anvaya is local-first. Ratings, notes, and metrics are stored only in
-          SQLite on this device. No account. No cloud sync in this version.
-          Location is used solely to compute astronomical Panchang for your place.
-        </Text>
-      </View>
+              setLocationError(null);
+              setUpdatingLocation(true);
+              try {
+                await refreshLocation(true);
+              } catch {
+                setLocationError("Couldn’t update location. Try again.");
+              } finally {
+                setUpdatingLocation(false);
+              }
+            }}
+          />
+          {locationError ? (
+            <Text style={styles.error} accessibilityLiveRegion="polite">
+              {locationError}
+            </Text>
+          ) : null}
+        </View>
+      </FadeIn>
 
-      <View style={styles.block}>
-        <Text style={styles.label}>About</Text>
-        <Text style={styles.body}>
-          Anvaya {Constants.expoConfig?.version ?? "1.0.0"}
-          {"\n"}
-          Hindu day boundaries follow local sunrise (Udaya). Panchang via Swiss
-          Ephemeris–class astronomy (astronomy-engine).
-        </Text>
-      </View>
-    </ScrollView>
+      <FadeIn delay={80}>
+        <View style={styles.block}>
+          <Text style={styles.label}>Privacy</Text>
+          <Text style={styles.body}>
+            Anvaya is local-first. Ratings, notes, and measures are stored only in
+            SQLite on this device. No account. No cloud sync in this version.
+            Location is used solely to compute sunrise-based day marks for your place.
+          </Text>
+        </View>
+      </FadeIn>
+
+      <FadeIn delay={120}>
+        <View style={styles.block}>
+          <Text style={styles.label}>About</Text>
+          <Text style={styles.body}>
+            Anvaya {Constants.expoConfig?.version ?? "1.0.0"}
+            {"\n"}
+            Day boundaries follow local sunrise. Lunar and solar marks via
+            astronomy-engine.
+          </Text>
+        </View>
+      </FadeIn>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  content: {
-    paddingHorizontal: space.xl,
-    paddingBottom: space.xxxl,
-    gap: space.lg,
-  },
-  title: { ...type.title, color: colors.ink, marginTop: space.sm },
+  title: { ...type.title, color: colors.ink },
   block: {
     gap: space.sm,
     backgroundColor: colors.surface,
     borderRadius: radius.md,
     padding: space.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
   },
   label: { ...type.label, color: colors.inkSecondary },
   body: { ...type.body, color: colors.ink },
@@ -186,12 +168,7 @@ const styles = StyleSheet.create({
   btn: {
     marginTop: space.sm,
     alignSelf: "flex-start",
-    backgroundColor: colors.accentSoft,
+    minHeight: 48,
     paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    borderRadius: radius.md,
   },
-  btnText: { ...type.bodyMedium, color: colors.ink },
-  btnDisabled: { opacity: 0.6 },
-  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
 });

@@ -1,12 +1,13 @@
 import { useEffect } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { PressableScale } from "@/src/components/ui/pressable-scale";
 import { AppProvider, useApp } from "@/src/hooks/app-store";
-import { colors } from "@/src/theme/tokens";
+import { colors, radius, space, type } from "@/src/theme/tokens";
 
 export { ErrorBoundary } from "expo-router";
 
@@ -39,9 +40,14 @@ function RootNavigator() {
     return (
       <View style={styles.boot}>
         <Text style={styles.errorText}>{error}</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Retry startup" onPress={() => void refresh()} style={styles.retry}>
+        <PressableScale
+          accessibilityRole="button"
+          accessibilityLabel="Retry startup"
+          onPress={() => void refresh()}
+          style={styles.retry}
+        >
           <Text style={styles.retryText}>Retry</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }
@@ -49,7 +55,13 @@ function RootNavigator() {
   return (
     <>
       <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.bg },
+          animation: "fade",
+        }}
+      >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" options={{ animation: "fade" }} />
       </Stack>
@@ -93,26 +105,25 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.bg,
+    padding: space.xl,
   },
   errorText: {
+    ...type.body,
     color: colors.danger,
     textAlign: "center",
-    padding: 24,
-    fontFamily: "Manrope_500Medium",
-    fontSize: 16,
   },
   retry: {
-    marginTop: 16,
+    marginTop: space.lg,
     minHeight: 48,
     minWidth: 96,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: radius.md,
     backgroundColor: colors.accent,
+    paddingHorizontal: space.xl,
   },
   retryText: {
-    color: colors.surface,
-    fontFamily: "Manrope_600SemiBold",
-    fontSize: 16,
+    ...type.bodyMedium,
+    color: colors.accentOn,
   },
 });

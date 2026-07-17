@@ -42,6 +42,8 @@ export default function TabLayout() {
           borderTopColor: colors.borderSubtle,
           height: Platform.OS === "ios" ? 88 : 68,
           paddingTop: 8,
+          elevation: 0,
+          shadowOpacity: 0,
         },
       }}
     >
@@ -49,7 +51,9 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Today",
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "today" : "today-outline"} focused={focused} />,
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "sunny" : "sunny-outline"} focused={focused} />
+          ),
           tabBarLabel: ({ focused }) => <TabLabel label="Today" focused={focused} />,
         }}
       />
@@ -57,30 +61,30 @@ export default function TabLayout() {
         name="history"
         options={{
           title: "History",
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "calendar" : "calendar-outline"} focused={focused} />,
-          tabBarLabel: ({ focused }) => (
-            <TabLabel label="History" focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "calendar" : "calendar-outline"} focused={focused} />
           ),
+          tabBarLabel: ({ focused }) => <TabLabel label="History" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="metrics"
         options={{
-          title: "Metrics",
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "options" : "options-outline"} focused={focused} />,
-          tabBarLabel: ({ focused }) => (
-            <TabLabel label="Metrics" focused={focused} />
+          title: "Measures",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "pulse" : "pulse-outline"} focused={focused} />
           ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Measures" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ focused }) => <TabIcon name={focused ? "settings" : "settings-outline"} focused={focused} />,
-          tabBarLabel: ({ focused }) => (
-            <TabLabel label="Settings" focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name={focused ? "settings" : "settings-outline"} focused={focused} />
           ),
+          tabBarLabel: ({ focused }) => <TabLabel label="Settings" focused={focused} />,
         }}
       />
     </Tabs>
