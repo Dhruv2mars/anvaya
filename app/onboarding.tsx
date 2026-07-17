@@ -109,6 +109,7 @@ export default function OnboardingScreen() {
               disabled={busy}
               onPress={() => removeName(name)}
               style={[styles.chip, busy && styles.controlDisabled]}
+              accessibilityRole="button"
               accessibilityLabel={`Remove ${name}`}
             >
               <Text style={styles.chipText}>{name} ×</Text>
@@ -139,6 +140,8 @@ export default function OnboardingScreen() {
               busy && styles.controlDisabled,
               pressed && !busy && styles.pressed,
             ]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy }}
             accessibilityLabel="Add measure"
           >
             <Text style={styles.addBtnText}>Add</Text>
@@ -158,6 +161,8 @@ export default function OnboardingScreen() {
               disabled={busy}
               onPress={() => addName(s)}
               style={[styles.suggest, busy && styles.controlDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${s}`}
             >
               <Text style={styles.suggestText}>+ {s}</Text>
             </PressableScale>

@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { AccessibilityInfo, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import type { ReactNode } from "react";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated";
 import { motion } from "@/src/theme/tokens";
 
 type Props = {
@@ -11,19 +11,7 @@ type Props = {
 
 /** Occasional enter — skipped when Reduce Motion is on. */
 export function FadeIn({ children, delay = 0, style }: Props) {
-  const [reduceMotion, setReduceMotion] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
-      if (mounted) setReduceMotion(enabled);
-    });
-    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
-    return () => {
-      mounted = false;
-      sub.remove();
-    };
-  }, []);
+  const reduceMotion = useReducedMotion();
 
   if (reduceMotion) {
     return <View style={style}>{children}</View>;

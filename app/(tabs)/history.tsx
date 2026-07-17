@@ -73,6 +73,8 @@ export default function HistoryScreen() {
             {history.map((d) => (
               <PressableScale
                 key={d.dayKey}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${formatShortDate(d.dayKey)}`}
                 style={styles.row}
                 onPress={async () => {
                   await selectDay(d.dayKey);

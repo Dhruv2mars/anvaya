@@ -55,6 +55,8 @@ export default function MetricsScreen() {
             }}
           />
           <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Add measure"
             style={styles.addBtn}
             onPress={async () => {
               if (!draft.trim()) return;
@@ -93,6 +95,8 @@ export default function MetricsScreen() {
                 />
               ) : (
                 <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Rename ${m.name}`}
                   style={styles.flex}
                   onPress={() => {
                     setEditingId(m.id);
@@ -105,7 +109,9 @@ export default function MetricsScreen() {
               )}
               <View style={styles.actions}>
                 <Pressable
+                  accessibilityRole="button"
                   disabled={index === 0}
+                  accessibilityState={{ disabled: index === 0 }}
                   onPress={async () => {
                     const ids = active.map((x) => x.id);
                     const next = [...ids];
@@ -120,7 +126,9 @@ export default function MetricsScreen() {
                   <Text style={styles.iconText}>↑</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
                   disabled={index === active.length - 1}
+                  accessibilityState={{ disabled: index === active.length - 1 }}
                   onPress={async () => {
                     const ids = active.map((x) => x.id);
                     const next = [...ids];
@@ -135,6 +143,7 @@ export default function MetricsScreen() {
                   <Text style={styles.iconText}>↓</Text>
                 </Pressable>
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() => {
                     Alert.alert(
                       "Archive measure?",

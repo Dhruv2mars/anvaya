@@ -23,7 +23,7 @@ export function PressableScale({
   disabled,
   style,
   accessibilityLabel,
-  accessibilityRole,
+  accessibilityRole = onPress ? "button" : undefined,
   accessibilityState,
   hitSlop,
 }: Props) {
@@ -31,7 +31,7 @@ export function PressableScale({
     <Pressable
       accessibilityLabel={accessibilityLabel}
       accessibilityRole={accessibilityRole}
-      accessibilityState={accessibilityState}
+      accessibilityState={{ disabled: !!disabled, ...accessibilityState }}
       disabled={disabled}
       hitSlop={hitSlop}
       onPress={onPress}

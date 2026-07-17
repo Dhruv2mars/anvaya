@@ -24,7 +24,12 @@ export function Screen({
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingTop: Math.max(insets.top, space.sm) + space.sm },
+          {
+            paddingTop: Math.max(insets.top, space.sm) + space.sm,
+            paddingBottom: space.xxxl + insets.bottom,
+            paddingLeft: space.xl + insets.left,
+            paddingRight: space.xl + insets.right,
+          },
           contentStyle,
         ]}
         contentInsetAdjustmentBehavior="never"
@@ -47,8 +52,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   content: {
-    paddingHorizontal: space.xl,
-    paddingBottom: space.xxxl,
     gap: space.lg,
   },
 });
