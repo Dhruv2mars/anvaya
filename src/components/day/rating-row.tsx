@@ -65,24 +65,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   dot: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.md,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "transparent",
   },
   dotIdle: {
-    backgroundColor: colors.surfaceMuted,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
   },
   dotActive: {
     backgroundColor: colors.accentSoft,
+    borderColor: colors.accentSoft,
   },
   dotSelected: {
     backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   num: {
     ...type.bodyMedium,
-    color: colors.inkSecondary,
+    color: colors.ink,
   },
   numActive: {
     color: colors.ink,

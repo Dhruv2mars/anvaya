@@ -17,10 +17,11 @@ describe("display copy", () => {
     expect(formatWeekday("Monday")).toBe("Monday");
   });
 
-  it("composes lunar day lines", () => {
-    expect(formatLunarDayLine("Ekadashi", "Shukla")).toBe("Ekadashi · Waxing");
+  it("composes secular lunar day lines", () => {
+    expect(formatLunarDayLine("Ekadashi", "Shukla")).toBe("Lunar day 11 · Waxing");
+    expect(formatLunarDayLine("Tritiya", "Shukla", 2)).toBe("Lunar day 3 · Waxing");
     expect(formatHistoryMarks("Ekadashi", "Krishna", "Somvaar")).toBe(
-      "Ekadashi · Waning · Monday"
+      "Lunar day 11 · Waning · Monday"
     );
   });
 });

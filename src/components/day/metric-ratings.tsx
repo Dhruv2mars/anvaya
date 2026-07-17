@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     gap: space.xl,
   },
   item: {
-    gap: space.sm,
+    gap: space.md,
   },
   name: {
     ...type.headline,

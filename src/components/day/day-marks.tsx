@@ -15,8 +15,8 @@ type Props = {
 /** Lunar and solar day marks for the selected sunrise-based day. */
 export function DayMarks({ panchang, locationLabel }: Props) {
   const sunrise = formatTimeAtLongitude(panchang.sunrise, panchang.longitude);
-  const primary = formatLunarDayLine(panchang.tithi, panchang.paksha);
-  const secondary = formatMarksSecondary(panchang.vaar, panchang.masa, panchang.nakshatra);
+  const primary = formatLunarDayLine(panchang.tithi, panchang.paksha, panchang.tithiIndex);
+  const secondary = formatMarksSecondary(panchang.vaar);
 
   return (
     <View style={styles.wrap} accessibilityRole="summary">
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   },
   kicker: {
     ...type.caption,
-    color: colors.inkTertiary,
+    color: colors.inkSecondary,
     marginBottom: space.xs,
   },
   primary: {
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     ...type.caption,
-    color: colors.inkTertiary,
+    color: colors.inkSecondary,
     marginTop: space.sm,
   },
 });
