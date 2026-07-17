@@ -73,6 +73,8 @@ export default function OnboardingScreen() {
     setBusy(true);
     try {
       await completeOnboarding(names);
+    } catch {
+      setError("Couldn’t finish setup. Try again.");
     } finally {
       finishing.current = false;
       setBusy(false);
@@ -106,8 +108,13 @@ export default function OnboardingScreen() {
         {names.map((name) => (
           <Pressable
             key={name}
+            disabled={busy}
             onPress={() => removeName(name)}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.chip,
+              busy && styles.controlDisabled,
+              pressed && !busy && styles.pressed,
+            ]}
             accessibilityLabel={`Remove ${name}`}
           >
             <Text style={styles.chipText}>{name} ×</Text>
@@ -118,6 +125,7 @@ export default function OnboardingScreen() {
       <View style={styles.addRow}>
         <TextInput
           value={draft}
+          editable={!busy}
           onChangeText={(text) => {
             setDraft(text);
             if (error) setError(null);
@@ -130,8 +138,13 @@ export default function OnboardingScreen() {
           returnKeyType="done"
         />
         <Pressable
+          disabled={busy}
           onPress={() => addName(draft)}
-          style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.addBtn,
+            busy && styles.controlDisabled,
+            pressed && !busy && styles.pressed,
+          ]}
           accessibilityLabel="Add metric"
         >
           <Text style={styles.addBtnText}>Add</Text>
@@ -148,8 +161,13 @@ export default function OnboardingScreen() {
         {SUGGESTIONS.filter((s) => !normalizedNames.has(s.toLowerCase())).map((s) => (
           <Pressable
             key={s}
+            disabled={busy}
             onPress={() => addName(s)}
-            style={({ pressed }) => [styles.suggest, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.suggest,
+              busy && styles.controlDisabled,
+              pressed && !busy && styles.pressed,
+            ]}
           >
             <Text style={styles.suggestText}>+ {s}</Text>
           </Pressable>
@@ -287,6 +305,9 @@ const styles = StyleSheet.create({
   },
   ctaDisabled: {
     opacity: 0.45,
+  },
+  controlDisabled: {
+    opacity: 0.55,
   },
   ctaText: {
     ...type.headline,
