@@ -48,6 +48,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { location, locationPermission, refreshLocation } = useApp();
   const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const waitingForSettings = useRef(false);
   const {
     blocked: permissionBlocked,
@@ -67,8 +68,11 @@ export default function SettingsScreen() {
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active" || !waitingForSettings.current) return;
       waitingForSettings.current = false;
+      setLocationError(null);
       setUpdatingLocation(true);
-      void refreshLocation(false).finally(() => setUpdatingLocation(false));
+      void refreshLocation(false)
+        .catch(() => setLocationError("Couldn’t update location. Try again."))
+        .finally(() => setUpdatingLocation(false));
     });
     return () => sub.remove();
   }, [refreshLocation]);
@@ -103,17 +107,22 @@ export default function SettingsScreen() {
           onPress={async () => {
             if (permissionBlocked) {
               waitingForSettings.current = true;
+              setLocationError(null);
               try {
                 await Linking.openSettings();
               } catch {
                 waitingForSettings.current = false;
+                setLocationError("Couldn’t open system settings.");
               }
               return;
             }
 
+            setLocationError(null);
             setUpdatingLocation(true);
             try {
               await refreshLocation(true);
+            } catch {
+              setLocationError("Couldn’t update location. Try again.");
             } finally {
               setUpdatingLocation(false);
             }
@@ -125,6 +134,11 @@ export default function SettingsScreen() {
             <Text style={styles.btnText}>{actionLabel}</Text>
           )}
         </Pressable>
+        {locationError ? (
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {locationError}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.block}>
@@ -168,6 +182,7 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: colors.inkSecondary },
   body: { ...type.body, color: colors.ink },
   hint: { ...type.caption, color: colors.inkTertiary },
+  error: { ...type.caption, color: colors.danger },
   btn: {
     marginTop: space.sm,
     alignSelf: "flex-start",

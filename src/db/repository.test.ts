@@ -176,7 +176,30 @@ describe("completeOnboardingSetup", () => {
     );
   });
 
-  it("does not duplicate metrics when an interrupted setup is retried", async () => {
+  it("retries the full transaction after an interrupted setup", async () => {
+    database.getFirstAsync
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ m: null })
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ m: null });
+    database.runAsync
+      .mockRejectedValueOnce(new Error("interrupted write"))
+      .mockResolvedValue({ changes: 1, lastInsertRowId: 1 });
+
+    await expect(completeOnboardingSetup(["Energy", "Focus"])).rejects.toThrow(
+      "interrupted write"
+    );
+    await completeOnboardingSetup(["Energy", "Focus"]);
+
+    expect(database.runAsync).toHaveBeenCalledTimes(4);
+    expect(database.runAsync).toHaveBeenLastCalledWith(
+      expect.stringContaining("INSERT INTO settings"),
+      "onboarding_complete",
+      "1"
+    );
+  });
+
+  it("does not duplicate metrics when a completed setup is retried", async () => {
     database.getFirstAsync.mockResolvedValueOnce({ value: "1" });
 
     await completeOnboardingSetup(["Energy", "Focus"]);

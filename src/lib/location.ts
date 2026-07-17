@@ -41,12 +41,15 @@ async function cacheLocation(fix: LocationFix): Promise<void> {
   await setSetting(CACHE_KEY, JSON.stringify(fix));
 }
 
-function toLocationFix(position: Location.LocationObject): LocationFix {
+function toLocationFix(
+  position: Location.LocationObject,
+  source: LocationFix["source"]
+): LocationFix {
   return {
     latitude: position.coords.latitude,
     longitude: position.coords.longitude,
     altitude: position.coords.altitude ?? 0,
-    source: "gps",
+    source,
   };
 }
 
@@ -116,12 +119,26 @@ export async function resolveLocation(options?: {
           Location.getLastKnownPositionAsync({ maxAge: 15 * 60 * 1000 }),
           1500
         );
-      const position = options?.forceCurrent
-        ? (await getCurrent()) ?? (await getLastKnown())
-        : (await getLastKnown()) ?? (await getCurrent());
+      let position: Location.LocationObject | null;
+      let source: LocationFix["source"];
+      if (options?.forceCurrent) {
+        position = await getCurrent();
+        source = "gps";
+        if (!position) {
+          position = await getLastKnown();
+          source = "cached";
+        }
+      } else {
+        position = await getLastKnown();
+        source = "cached";
+        if (!position) {
+          position = await getCurrent();
+          source = "gps";
+        }
+      }
 
       if (position) {
-        const fix = toLocationFix(position);
+        const fix = toLocationFix(position, source);
         await cacheLocation(fix);
         return { location: fix, permission };
       }

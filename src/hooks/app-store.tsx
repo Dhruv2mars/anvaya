@@ -289,7 +289,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLocationPermission(permission);
       const key = resolveHinduDayKey(new Date(), loc);
       setTodayKey(key);
-      await loadDay(wasViewingToday ? key : selectedDayKey, loc);
+      if (wasViewingToday) {
+        await loadDay(key, loc);
+      }
     },
     [loadDay, selectedDayKey, todayKey]
   );

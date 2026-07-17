@@ -163,7 +163,7 @@ export default function OnboardingScreen() {
 
       <Pressable
         onPress={finish}
-        disabled={busy || !hasMinimumMetrics}
+        disabled={busy}
         style={({ pressed }) => [
           styles.cta,
           (busy || !hasMinimumMetrics) && styles.ctaDisabled,

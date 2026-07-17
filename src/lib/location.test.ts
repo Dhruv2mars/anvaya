@@ -76,7 +76,7 @@ describe("resolveLocation", () => {
     expect(firstResult.location).toMatchObject({
       latitude: 19.076,
       longitude: 72.8777,
-      source: "gps",
+      source: "cached",
     });
   });
 
@@ -108,7 +108,7 @@ describe("resolveLocation", () => {
       latitude: 12.9715987,
       longitude: 77.5945627,
       altitude: 920.25,
-      source: "gps",
+      source: "cached",
     });
     expect(repository.setSetting).toHaveBeenCalledWith(
       "location_cache",
