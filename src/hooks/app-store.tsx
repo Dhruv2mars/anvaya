@@ -8,10 +8,11 @@ import React, {
   useState,
 } from "react";
 import { AppState as RNAppState, type AppStateStatus } from "react-native";
+import type { LocationPermissionResponse } from "expo-location";
 import type { DayRecord, LocationFix, Metric, PanchangSnapshot, Rating } from "@/src/domain/types";
 import { DEFAULT_LOCATION } from "@/src/domain/types";
 import { resolveHinduDayKey, computePanchang } from "@/src/panchang/engine";
-import { resolveLocation } from "@/src/lib/location";
+import { INITIAL_LOCATION_PERMISSION, resolveLocation } from "@/src/lib/location";
 import * as repo from "@/src/db/repository";
 import { getDb } from "@/src/db/client";
 
@@ -19,6 +20,7 @@ type StoreState = {
   ready: boolean;
   onboardingComplete: boolean;
   location: LocationFix;
+  locationPermission: LocationPermissionResponse;
   todayKey: string;
   selectedDayKey: string;
   panchang: PanchangSnapshot | null;
@@ -39,10 +41,11 @@ type AppActions = {
   addMetric: (name: string) => Promise<void>;
   renameMetric: (id: string, name: string) => Promise<void>;
   archiveMetric: (id: string) => Promise<void>;
+  deleteArchivedMetric: (id: string) => Promise<void>;
   restoreMetric: (id: string) => Promise<void>;
   reorderMetrics: (ids: string[]) => Promise<void>;
   completeOnboarding: (metricNames: string[]) => Promise<void>;
-  refreshLocation: () => Promise<void>;
+  refreshLocation: (requestPermission?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -52,6 +55,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
   const [location, setLocation] = useState<LocationFix>(DEFAULT_LOCATION);
+  const [locationPermission, setLocationPermission] =
+    useState<LocationPermissionResponse>(INITIAL_LOCATION_PERMISSION);
   const [todayKey, setTodayKey] = useState("");
   const [selectedDayKey, setSelectedDayKey] = useState("");
   const [panchang, setPanchang] = useState<PanchangSnapshot | null>(null);
@@ -86,8 +91,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const onboarded = (await repo.getSetting("onboarding_complete")) === "1";
       setOnboardingComplete(onboarded);
 
-      const { location: loc } = await resolveLocation({ requestPermission: false });
+      const { location: loc, permission } = await resolveLocation({
+        requestPermission: false,
+      });
       setLocation(loc);
+      setLocationPermission(permission);
 
       const now = new Date();
       const hinduToday = resolveHinduDayKey(now, loc);
@@ -223,6 +231,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [refreshMetrics]
   );
 
+  const deleteArchivedMetricFn = useCallback(
+    async (id: string) => {
+      await repo.deleteArchivedMetric(id);
+      setRatings((prev) => prev.filter((rating) => rating.metricId !== id));
+      const [, hist] = await Promise.all([
+        refreshMetrics(),
+        repo.listDaysWithActivity(120),
+      ]);
+      setHistory(hist);
+    },
+    [refreshMetrics]
+  );
+
   const restoreMetricFn = useCallback(
     async (id: string) => {
       await repo.restoreMetric(id);
@@ -241,28 +262,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const completeOnboarding = useCallback(
     async (metricNames: string[]) => {
-      for (const name of metricNames) {
-        if (name.trim()) await repo.createMetric(name.trim());
-      }
-      await repo.setSetting("onboarding_complete", "1");
-      setOnboardingComplete(true);
+      await repo.completeOnboardingSetup(metricNames);
       await refreshMetrics();
-      const { location: loc } = await resolveLocation({ requestPermission: true });
+      const { location: loc, permission } = await resolveLocation({
+        requestPermission: true,
+        forceCurrent: true,
+      });
       setLocation(loc);
+      setLocationPermission(permission);
       const key = resolveHinduDayKey(new Date(), loc);
       setTodayKey(key);
+      setOnboardingComplete(true);
       await loadDay(key, loc);
     },
     [loadDay, refreshMetrics]
   );
 
-  const refreshLocation = useCallback(async () => {
-    const { location: loc } = await resolveLocation({ requestPermission: true });
-    setLocation(loc);
-    const key = resolveHinduDayKey(new Date(), loc);
-    setTodayKey(key);
-    await loadDay(selectedDayKey || key, loc);
-  }, [loadDay, selectedDayKey]);
+  const refreshLocation = useCallback(
+    async (requestPermission = true) => {
+      const { location: loc, permission } = await resolveLocation({
+        requestPermission,
+        forceCurrent: true,
+      });
+      const wasViewingToday = !selectedDayKey || selectedDayKey === todayKey;
+      setLocation(loc);
+      setLocationPermission(permission);
+      const key = resolveHinduDayKey(new Date(), loc);
+      setTodayKey(key);
+      if (wasViewingToday) {
+        await loadDay(key, loc);
+      }
+    },
+    [loadDay, selectedDayKey, todayKey]
+  );
 
   const refresh = useCallback(async () => {
     await bootstrap();
@@ -273,6 +305,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ready,
       onboardingComplete,
       location,
+      locationPermission,
       todayKey,
       selectedDayKey,
       panchang,
@@ -290,6 +323,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addMetric,
       renameMetric: renameMetricFn,
       archiveMetric: archiveMetricFn,
+      deleteArchivedMetric: deleteArchivedMetricFn,
       restoreMetric: restoreMetricFn,
       reorderMetrics: reorderMetricsFn,
       completeOnboarding,
@@ -300,6 +334,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ready,
       onboardingComplete,
       location,
+      locationPermission,
       todayKey,
       selectedDayKey,
       panchang,
@@ -317,6 +352,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addMetric,
       renameMetricFn,
       archiveMetricFn,
+      deleteArchivedMetricFn,
       restoreMetricFn,
       reorderMetricsFn,
       completeOnboarding,

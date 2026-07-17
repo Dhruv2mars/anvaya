@@ -1,33 +1,144 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  AppState,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { PermissionStatus, type LocationPermissionResponse } from "expo-location";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 import Constants from "expo-constants";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+function getLocationPermissionPresentation(permission: LocationPermissionResponse) {
+  if (permission.status === PermissionStatus.GRANTED) {
+    return {
+      blocked: false,
+      actionLabel: "Update location",
+      hint: "Used for sunrise and Panchang accuracy. Data stays on device. You can revoke access in system settings anytime.",
+    };
+  }
+  if (permission.status === PermissionStatus.DENIED && !permission.canAskAgain) {
+    return {
+      blocked: true,
+      actionLabel: "Open settings",
+      hint: "Location access is blocked. Open system settings to allow it, then return here.",
+    };
+  }
+  if (permission.status === PermissionStatus.DENIED) {
+    return {
+      blocked: false,
+      actionLabel: "Try location again",
+      hint: "Location access was denied. You can try again or keep using the current fallback.",
+    };
+  }
+  return {
+    blocked: false,
+    actionLabel: "Allow location",
+    hint: "Allow location for accurate sunrise and Panchang calculations at your current place.",
+  };
+}
 
 export default function SettingsScreen() {
-  const { location, refreshLocation } = useApp();
+  const insets = useSafeAreaInsets();
+  const { location, locationPermission, refreshLocation } = useApp();
+  const [updatingLocation, setUpdatingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const waitingForSettings = useRef(false);
+  const {
+    blocked: permissionBlocked,
+    actionLabel,
+    hint: permissionHint,
+  } = getLocationPermissionPresentation(locationPermission);
+  const locationSource =
+    location.source === "gps"
+      ? locationPermission.android?.accuracy === "coarse"
+        ? "Approximate device location"
+        : "Current device location"
+      : location.source === "cached"
+        ? "Last known location"
+        : "Delhi fallback";
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active" || !waitingForSettings.current) return;
+      waitingForSettings.current = false;
+      setLocationError(null);
+      setUpdatingLocation(true);
+      void refreshLocation(false)
+        .catch(() => setLocationError("Couldn’t update location. Try again."))
+        .finally(() => setUpdatingLocation(false));
+    });
+    return () => sub.remove();
+  }, [refreshLocation]);
 
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, space.sm) },
+      ]}
+      contentInsetAdjustmentBehavior="never"
     >
       <Text style={styles.title}>Settings</Text>
 
       <View style={styles.block}>
         <Text style={styles.label}>Location</Text>
         <Text style={styles.body}>
-          Source: {location.source}
+          {locationSource}
           {"\n"}
           Lat {location.latitude.toFixed(4)}, Lon {location.longitude.toFixed(4)}
         </Text>
-        <Text style={styles.hint}>
-          Used for sunrise and Panchang accuracy. Data stays on device. You can
-          revoke access in system settings anytime.
-        </Text>
-        <Pressable style={styles.btn} onPress={() => void refreshLocation()}>
-          <Text style={styles.btnText}>Update location</Text>
+        <Text style={styles.hint}>{permissionHint}</Text>
+        <Pressable
+          disabled={updatingLocation}
+          style={({ pressed }) => [
+            styles.btn,
+            updatingLocation && styles.btnDisabled,
+            pressed && !updatingLocation && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          onPress={async () => {
+            if (permissionBlocked) {
+              waitingForSettings.current = true;
+              setLocationError(null);
+              try {
+                await Linking.openSettings();
+              } catch {
+                waitingForSettings.current = false;
+                setLocationError("Couldn’t open system settings.");
+              }
+              return;
+            }
+
+            setLocationError(null);
+            setUpdatingLocation(true);
+            try {
+              await refreshLocation(true);
+            } catch {
+              setLocationError("Couldn’t update location. Try again.");
+            } finally {
+              setUpdatingLocation(false);
+            }
+          }}
+        >
+          {updatingLocation ? (
+            <ActivityIndicator color={colors.accentPressed} />
+          ) : (
+            <Text style={styles.btnText}>{actionLabel}</Text>
+          )}
         </Pressable>
+        {locationError ? (
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {locationError}
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.block}>
@@ -71,6 +182,7 @@ const styles = StyleSheet.create({
   label: { ...type.label, color: colors.inkSecondary },
   body: { ...type.body, color: colors.ink },
   hint: { ...type.caption, color: colors.inkTertiary },
+  error: { ...type.caption, color: colors.danger },
   btn: {
     marginTop: space.sm,
     alignSelf: "flex-start",
@@ -80,4 +192,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   btnText: { ...type.bodyMedium, color: colors.ink },
+  btnDisabled: { opacity: 0.6 },
+  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
 });

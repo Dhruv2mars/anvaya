@@ -9,14 +9,17 @@ import {
   View,
 } from "react-native";
 import { useApp } from "@/src/hooks/app-store";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 export default function MetricsScreen() {
+  const insets = useSafeAreaInsets();
   const {
     allMetrics,
     addMetric,
     renameMetric,
     archiveMetric,
+    deleteArchivedMetric,
     restoreMetric,
     reorderMetrics,
   } = useApp();
@@ -30,14 +33,17 @@ export default function MetricsScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
-      contentInsetAdjustmentBehavior="automatic"
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, space.sm) },
+      ]}
+      contentInsetAdjustmentBehavior="never"
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.title}>Metrics</Text>
       <Text style={styles.lead}>
-        Create, rename, reorder, archive. Archiving hides a metric from Today but
-        keeps every past rating.
+        Create, rename, reorder, and archive metrics. Archived metrics keep their
+        history until you permanently delete them.
       </Text>
 
       <View style={styles.addRow}>
@@ -161,10 +167,38 @@ export default function MetricsScreen() {
           <Text style={styles.section}>Archived</Text>
           {archived.map((m) => (
             <View key={m.id} style={styles.row}>
-              <Text style={[styles.name, styles.muted]}>{m.name}</Text>
-              <Pressable onPress={() => void restoreMetric(m.id)}>
-                <Text style={styles.restore}>Restore</Text>
-              </Pressable>
+              <Text style={[styles.name, styles.muted, styles.flex]}>{m.name}</Text>
+              <View style={styles.actions}>
+                <Pressable
+                  style={styles.iconBtn}
+                  onPress={() => void restoreMetric(m.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Restore ${m.name}`}
+                >
+                  <Text style={styles.restore}>Restore</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.iconBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Delete ${m.name} permanently`}
+                  onPress={() => {
+                    Alert.alert(
+                      "Delete metric permanently?",
+                      `“${m.name}” and all of its past ratings will be permanently deleted. This cannot be undone.`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Delete permanently",
+                          style: "destructive",
+                          onPress: () => void deleteArchivedMetric(m.id),
+                        },
+                      ]
+                    );
+                  }}
+                >
+                  <Text style={[styles.iconText, styles.danger]}>Delete</Text>
+                </Pressable>
+              </View>
             </View>
           ))}
         </>

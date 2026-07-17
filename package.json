@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -17,6 +17,7 @@
   "dependencies": {
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.4.2",
+    "@expo/vector-icons": "^15.0.2",
     "@ishubhamx/panchangam-js": "3.0.0",
     "astronomy-engine": "^2.1.19",
     "date-fns": "^4.4.0",

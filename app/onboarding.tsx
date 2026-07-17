@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -13,37 +13,73 @@ import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 const SUGGESTIONS = ["Energy", "Focus", "Calm", "Sleep", "Mood"];
+const MIN_METRICS = 2;
+const MAX_METRICS = 5;
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { completeOnboarding } = useApp();
   const [names, setNames] = useState<string[]>(["Energy", "Focus", "Calm"]);
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const finishing = useRef(false);
+  const namesRef = useRef(names);
+  const hasMinimumMetrics = names.length >= MIN_METRICS;
+  const normalizedNames = useMemo(
+    () => new Set(names.map((name) => name.toLowerCase())),
+    [names]
+  );
 
   const addName = useCallback((name: string) => {
     const trimmed = name.trim();
-    if (!trimmed) return;
-    setNames((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
+    if (!trimmed) {
+      setError("Enter a metric name.");
+      return;
+    }
+
+    const current = namesRef.current;
+    if (current.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) {
+      setError("That metric is already added.");
+      return;
+    }
+    if (current.length >= MAX_METRICS) {
+      setError(`Choose up to ${MAX_METRICS} metrics.`);
+      return;
+    }
+
+    const next = [...current, trimmed];
+    namesRef.current = next;
+    setNames(next);
     setDraft("");
+    setError(null);
   }, []);
 
   const removeName = useCallback((name: string) => {
-    setNames((prev) => prev.filter((n) => n !== name));
+    const next = namesRef.current.filter((existing) => existing !== name);
+    namesRef.current = next;
+    setNames(next);
+    setError(null);
   }, []);
 
   const finish = useCallback(async () => {
-    if (names.length === 0 || finishing.current) return;
+    if (finishing.current) return;
+    if (!hasMinimumMetrics) {
+      setError(`Choose at least ${MIN_METRICS} metrics.`);
+      return;
+    }
     finishing.current = true;
+    setError(null);
     setBusy(true);
     try {
       await completeOnboarding(names);
+    } catch {
+      setError("Couldn’t finish setup. Try again.");
     } finally {
       finishing.current = false;
       setBusy(false);
     }
-  }, [completeOnboarding, names]);
+  }, [completeOnboarding, hasMinimumMetrics, names]);
 
   return (
     <ScrollView
@@ -64,15 +100,21 @@ export default function OnboardingScreen() {
 
       <Text style={styles.section}>Your metrics</Text>
       <Text style={styles.hint}>
-        Choose 2–5 things to rate daily. Rename or archive later; history stays.
+        Choose {MIN_METRICS}–{MAX_METRICS} things to rate daily. Rename or archive
+        later; history stays.
       </Text>
 
       <View style={styles.chips}>
         {names.map((name) => (
           <Pressable
             key={name}
+            disabled={busy}
             onPress={() => removeName(name)}
-            style={({ pressed }) => [styles.chip, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.chip,
+              busy && styles.controlDisabled,
+              pressed && !busy && styles.pressed,
+            ]}
             accessibilityLabel={`Remove ${name}`}
           >
             <Text style={styles.chipText}>{name} ×</Text>
@@ -83,28 +125,49 @@ export default function OnboardingScreen() {
       <View style={styles.addRow}>
         <TextInput
           value={draft}
-          onChangeText={setDraft}
+          editable={!busy}
+          onChangeText={(text) => {
+            setDraft(text);
+            if (error) setError(null);
+          }}
           placeholder="Add a metric"
+          maxLength={40}
           placeholderTextColor={colors.inkTertiary}
           style={styles.input}
           onSubmitEditing={() => addName(draft)}
           returnKeyType="done"
         />
         <Pressable
+          disabled={busy}
           onPress={() => addName(draft)}
-          style={({ pressed }) => [styles.addBtn, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.addBtn,
+            busy && styles.controlDisabled,
+            pressed && !busy && styles.pressed,
+          ]}
           accessibilityLabel="Add metric"
         >
           <Text style={styles.addBtnText}>Add</Text>
         </Pressable>
       </View>
 
+      {error ? (
+        <Text style={styles.error} accessibilityLiveRegion="polite">
+          {error}
+        </Text>
+      ) : null}
+
       <View style={styles.suggestions}>
-        {SUGGESTIONS.filter((s) => !names.includes(s)).map((s) => (
+        {SUGGESTIONS.filter((s) => !normalizedNames.has(s.toLowerCase())).map((s) => (
           <Pressable
             key={s}
+            disabled={busy}
             onPress={() => addName(s)}
-            style={({ pressed }) => [styles.suggest, pressed && styles.pressed]}
+            style={({ pressed }) => [
+              styles.suggest,
+              busy && styles.controlDisabled,
+              pressed && !busy && styles.pressed,
+            ]}
           >
             <Text style={styles.suggestText}>+ {s}</Text>
           </Pressable>
@@ -118,11 +181,11 @@ export default function OnboardingScreen() {
 
       <Pressable
         onPress={finish}
-        disabled={busy || names.length === 0}
+        disabled={busy}
         style={({ pressed }) => [
           styles.cta,
-          (busy || names.length === 0) && styles.ctaDisabled,
-          pressed && !(busy || names.length === 0) && styles.pressed,
+          (busy || !hasMinimumMetrics) && styles.ctaDisabled,
+          pressed && !(busy || !hasMinimumMetrics) && styles.pressed,
         ]}
         accessibilityRole="button"
       >
@@ -171,6 +234,10 @@ const styles = StyleSheet.create({
   hint: {
     ...type.body,
     color: colors.inkSecondary,
+  },
+  error: {
+    ...type.caption,
+    color: colors.danger,
   },
   chips: {
     flexDirection: "row",
@@ -238,6 +305,9 @@ const styles = StyleSheet.create({
   },
   ctaDisabled: {
     opacity: 0.45,
+  },
+  controlDisabled: {
+    opacity: 0.55,
   },
   ctaText: {
     ...type.headline,

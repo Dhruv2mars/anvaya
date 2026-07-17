@@ -2,6 +2,7 @@ import * as SQLite from "expo-sqlite";
 import { SCHEMA_SQL } from "@/src/db/schema";
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+let writeQueue: Promise<void> = Promise.resolve();
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbPromise) {
@@ -19,7 +20,18 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   return dbPromise;
 }
 
+/** Serialize mutations so native SQLite statements never compete for the same connection. */
+export function runDbWrite<T>(task: () => Promise<T>): Promise<T> {
+  const operation = writeQueue.then(task);
+  writeQueue = operation.then(
+    () => undefined,
+    () => undefined
+  );
+  return operation;
+}
+
 /** Test helper — reset singleton between tests. */
 export function resetDbSingleton(): void {
   dbPromise = null;
+  writeQueue = Promise.resolve();
 }

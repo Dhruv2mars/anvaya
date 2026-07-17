@@ -12,6 +12,22 @@ describe("panchang engine", () => {
     expect(snap.masa.length).toBeGreaterThan(0);
   });
 
+  it("uses and preserves the exact supplied coordinates", () => {
+    const bengaluru = {
+      latitude: 12.9715987,
+      longitude: 77.5945627,
+      altitude: 920.25,
+      source: "gps" as const,
+    };
+
+    const snap = computePanchang("2024-01-15", bengaluru);
+    const delhiSnap = computePanchang("2024-01-15", DEFAULT_LOCATION);
+
+    expect(snap.latitude).toBe(bengaluru.latitude);
+    expect(snap.longitude).toBe(bengaluru.longitude);
+    expect(snap.sunrise.toISOString()).not.toBe(delhiSnap.sunrise.toISOString());
+  });
+
   it("uses previous civil day before sunrise", () => {
     // Pre-dawn local: construct a time that is definitely before sunrise
     const beforeSunrise = new Date(2024, 0, 15, 3, 0, 0); // 3am local

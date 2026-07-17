@@ -3,6 +3,22 @@ import { DEFAULT_LOCATION, type LocationFix } from "@/src/domain/types";
 import { getSetting, setSetting } from "@/src/db/repository";
 
 const CACHE_KEY = "location_cache";
+export const INITIAL_LOCATION_PERMISSION: Location.LocationPermissionResponse = {
+  status: Location.PermissionStatus.UNDETERMINED,
+  granted: false,
+  canAskAgain: true,
+  expires: "never",
+};
+let permissionRequest: Promise<Location.LocationPermissionResponse> | null = null;
+
+function requestForegroundPermission(): Promise<Location.LocationPermissionResponse> {
+  if (!permissionRequest) {
+    permissionRequest = Location.requestForegroundPermissionsAsync().finally(() => {
+      permissionRequest = null;
+    });
+  }
+  return permissionRequest;
+}
 
 export async function loadCachedLocation(): Promise<LocationFix | null> {
   const raw = await getSetting(CACHE_KEY);
@@ -25,14 +41,30 @@ async function cacheLocation(fix: LocationFix): Promise<void> {
   await setSetting(CACHE_KEY, JSON.stringify(fix));
 }
 
+function toLocationFix(
+  position: Location.LocationObject,
+  source: LocationFix["source"]
+): LocationFix {
+  return {
+    latitude: position.coords.latitude,
+    longitude: position.coords.longitude,
+    altitude: position.coords.altitude ?? 0,
+    source,
+  };
+}
+
 /**
  * Resolve location for Panchang. Prefers GPS, then cache, then Delhi default.
- * Never throws — accuracy degrades gracefully when permission denied.
- * Times out quickly so the UI is never blocked on geolocation prompts.
+ * Never throws — accuracy degrades gracefully when permission is unavailable.
+ * Native permission requests remain pending until the user answers and are single-flight.
  */
 export async function resolveLocation(options?: {
   requestPermission?: boolean;
-}): Promise<{ location: LocationFix; permission: Location.PermissionStatus }> {
+  forceCurrent?: boolean;
+}): Promise<{
+  location: LocationFix;
+  permission: Location.LocationPermissionResponse;
+}> {
   const request = options?.requestPermission ?? false;
 
   const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T | null> => {
@@ -49,37 +81,66 @@ export async function resolveLocation(options?: {
     }
   };
 
-  let permission = await withTimeout(Location.getForegroundPermissionsAsync(), 2500);
+  let permission: Location.LocationPermissionResponse | null = null;
+  try {
+    permission = await withTimeout(Location.getForegroundPermissionsAsync(), 2500);
+  } catch {
+    // fall through to cache/default
+  }
   if (!permission) {
     const cached = await loadCachedLocation();
     return {
       location: cached ?? DEFAULT_LOCATION,
-      permission: Location.PermissionStatus.UNDETERMINED,
+      permission: INITIAL_LOCATION_PERMISSION,
     };
   }
 
-  if (request && permission.status !== Location.PermissionStatus.GRANTED) {
-    const asked = await withTimeout(Location.requestForegroundPermissionsAsync(), 8000);
-    if (asked) permission = asked;
+  if (
+    request &&
+    permission.status !== Location.PermissionStatus.GRANTED &&
+    permission.canAskAgain
+  ) {
+    try {
+      permission = await requestForegroundPermission();
+    } catch {
+      // retain the last known permission state and use cache/default
+    }
   }
 
   if (permission.status === Location.PermissionStatus.GRANTED) {
     try {
-      const pos = await withTimeout(
-        Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        }),
-        5000
-      );
-      if (pos) {
-        const fix: LocationFix = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          altitude: pos.coords.altitude ?? 0,
-          source: "gps",
-        };
+      const getCurrent = () =>
+        withTimeout(
+          Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+          5000
+        );
+      const getLastKnown = () =>
+        withTimeout(
+          Location.getLastKnownPositionAsync({ maxAge: 15 * 60 * 1000 }),
+          1500
+        );
+      let position: Location.LocationObject | null;
+      let source: LocationFix["source"];
+      if (options?.forceCurrent) {
+        position = await getCurrent();
+        source = "gps";
+        if (!position) {
+          position = await getLastKnown();
+          source = "cached";
+        }
+      } else {
+        position = await getLastKnown();
+        source = "cached";
+        if (!position) {
+          position = await getCurrent();
+          source = "gps";
+        }
+      }
+
+      if (position) {
+        const fix = toLocationFix(position, source);
         await cacheLocation(fix);
-        return { location: fix, permission: permission.status };
+        return { location: fix, permission };
       }
     } catch {
       // fall through to cache/default
@@ -88,8 +149,8 @@ export async function resolveLocation(options?: {
 
   const cached = await loadCachedLocation();
   if (cached) {
-    return { location: cached, permission: permission.status };
+    return { location: cached, permission };
   }
 
-  return { location: DEFAULT_LOCATION, permission: permission.status };
+  return { location: DEFAULT_LOCATION, permission };
 }
