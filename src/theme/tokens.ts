@@ -1,26 +1,29 @@
 /**
- * Anvaya visual system — cool daylight desk, cobalt accent.
- * Scene: quiet morning light, personal ritual without temple drama.
- * Restrained strategy: tinted neutrals + one accent ≤10%.
+ * Anvaya visual system — cool mist desk, crimson accent.
+ * Scene: morning check-in after coffee; cool stone light, one warm mark.
+ * Restrained: tinted cool neutrals + accent ≤10%.
  */
 export const colors = {
-  bg: "#EEF3F8",
+  bg: "#EAEFF3",
+  bgDeep: "#DCE4EB",
   surface: "#FFFFFF",
-  surfaceMuted: "#E2EAF2",
-  ink: "#15202B",
-  inkSecondary: "#3D4F61",
-  inkTertiary: "#6B7C8D",
-  accent: "#2A63D8",
-  accentSoft: "#D9E6FF",
-  accentPressed: "#1E4FB0",
-  border: "#C9D5E3",
-  borderSubtle: "#DCE5EE",
-  ratingEmpty: "#C9D5E3",
-  ratingFilled: "#2A63D8",
+  surfaceMuted: "#DFE6EC",
+  ink: "#141B24",
+  inkSecondary: "#3A4654",
+  inkTertiary: "#6B7885",
+  accent: "#C43B2E",
+  accentSoft: "#F6E4E1",
+  accentPressed: "#A32F24",
+  accentOn: "#FFFFFF",
+  border: "#C8D2DB",
+  borderSubtle: "#D8E0E7",
+  ratingEmpty: "#C8D2DB",
+  ratingFilled: "#C43B2E",
   danger: "#B83A3A",
-  success: "#247A48",
-  overlay: "rgba(21, 32, 43, 0.4)",
-  panchangWash: "#E6EEF8",
+  success: "#1F6B45",
+  overlay: "rgba(20, 27, 36, 0.42)",
+  marksWash: "#E3EBF1",
+  marksWashWarm: "#F3E8E5",
 } as const;
 
 export const space = {
@@ -43,15 +46,15 @@ export const radius = {
 export const type = {
   display: {
     fontFamily: "Fraunces_600SemiBold",
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.4,
+    fontSize: 36,
+    lineHeight: 42,
+    letterSpacing: -0.35,
   },
   title: {
     fontFamily: "Manrope_700Bold",
-    fontSize: 22,
-    lineHeight: 28,
-    letterSpacing: -0.25,
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: -0.2,
   },
   headline: {
     fontFamily: "Manrope_600SemiBold",
@@ -72,23 +75,31 @@ export const type = {
     fontFamily: "Manrope_600SemiBold",
     fontSize: 13,
     lineHeight: 18,
-    letterSpacing: 0.15,
+    letterSpacing: 0.12,
   },
   caption: {
     fontFamily: "Manrope_500Medium",
     fontSize: 12,
     lineHeight: 16,
   },
-  panchang: {
+  marks: {
     fontFamily: "Fraunces_500Medium",
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 24,
+    letterSpacing: -0.15,
+  },
+  brand: {
+    fontFamily: "Fraunces_600SemiBold",
+    fontSize: 18,
     lineHeight: 22,
-    letterSpacing: -0.1,
+    letterSpacing: -0.2,
   },
 } as const;
 
 export const motion = {
-  fast: 150,
+  fast: 140,
   normal: 200,
   slow: 280,
+  /** Strong ease-out for press / enter feedback */
+  easeOut: [0.23, 1, 0.32, 1] as const,
 } as const;

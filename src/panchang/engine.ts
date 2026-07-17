@@ -10,16 +10,6 @@ import { Observer } from "astronomy-engine";
 import { civilDayKeyAtLongitude, noonAtLongitude, shiftDayKey } from "@/src/domain/day-key";
 import type { LocationFix, PanchangSnapshot } from "@/src/domain/types";
 
-const SANSKRIT_VAAR: Record<string, string> = {
-  Sunday: "Ravivaar",
-  Monday: "Somvaar",
-  Tuesday: "Mangalvaar",
-  Wednesday: "Budhvaar",
-  Thursday: "Guruvaar",
-  Friday: "Shukravaar",
-  Saturday: "Shanivaar",
-};
-
 function tithiDisplayName(index: number): string {
   // Library uses 0–29 (Shukla Prathama … Amavasya) or 1–30 depending on version.
   // Prefer exported names; fall back to ordinal.
@@ -52,8 +42,7 @@ function tithiDisplayName(index: number): string {
 }
 
 function vaarDisplay(varaIndex: number): string {
-  const english = dayNames?.[varaIndex] ?? "—";
-  return SANSKRIT_VAAR[english] ?? english;
+  return dayNames?.[varaIndex] ?? "—";
 }
 
 function asDate(value: Date | string | number | null | undefined, fallback: Date): Date {
@@ -64,8 +53,8 @@ function asDate(value: Date | string | number | null | undefined, fallback: Date
 }
 
 /**
- * Resolve the Hindu day key for an absolute instant using sunrise-to-sunrise
- * boundaries at the observer location (independent of device timezone).
+ * Resolve the sunrise-based day key for an absolute instant
+ * (sunrise → next sunrise at the observer location).
  */
 export function resolveHinduDayKey(now: Date, location: LocationFix): string {
   const observer = new Observer(location.latitude, location.longitude, location.altitude);
@@ -132,6 +121,7 @@ export function computePanchang(dayKey: string, location: LocationFix): Panchang
   };
 }
 
+/** @deprecated Prefer formatCyclePhase from domain/display for UI. */
 export function formatPaksha(paksha: "Shukla" | "Krishna"): string {
-  return paksha === "Shukla" ? "Shukla Paksha" : "Krishna Paksha";
+  return paksha === "Shukla" ? "Waxing" : "Waning";
 }

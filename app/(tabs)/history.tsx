@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button } from "@/src/components/ui/button";
+import { FadeIn } from "@/src/components/ui/fade-in";
+import { PressableScale } from "@/src/components/ui/pressable-scale";
+import { Screen } from "@/src/components/ui/screen";
 import { useApp } from "@/src/hooks/app-store";
 import { formatShortDate } from "@/src/domain/day-key";
-import { formatPaksha } from "@/src/panchang/engine";
+import { formatHistoryMarks } from "@/src/domain/display";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 import { computeMetricStats } from "@/src/stats/patterns";
 import * as repo from "@/src/db/repository";
 import type { Rating } from "@/src/domain/types";
 
 export default function HistoryScreen() {
-  const insets = useSafeAreaInsets();
   const { history, metrics, todayKey, selectDay } = useApp();
   const router = useRouter();
   const [allRatings, setAllRatings] = useState<Rating[]>([]);
@@ -26,96 +28,87 @@ export default function HistoryScreen() {
   );
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: Math.max(insets.top, space.sm) },
-      ]}
-      contentInsetAdjustmentBehavior="never"
-    >
-      <Text style={styles.title}>History</Text>
-      <Text style={styles.lead}>Past days and quiet patterns. Tap a day to edit.</Text>
+    <Screen>
+      <FadeIn>
+        <Text style={styles.title}>History</Text>
+        <Text style={styles.lead}>Past days and quiet patterns. Tap a day to edit.</Text>
+      </FadeIn>
 
       {stats.length > 0 ? (
-        <View style={styles.patterns}>
-          <Text style={styles.section}>Patterns</Text>
-          {stats.map((s) => (
-            <View key={s.metricId} style={styles.statRow}>
-              <Text style={styles.statName}>{s.metricName}</Text>
-              <Text style={styles.statMeta}>
-                avg {s.average ? s.average.toFixed(1) : "—"}
-                {s.last7Average != null
-                  ? ` · 7d ${s.last7Average.toFixed(1)}`
-                  : ""}
-                {s.streak > 0 ? ` · streak ${s.streak}` : ""}
-              </Text>
-            </View>
-          ))}
-        </View>
+        <FadeIn delay={40}>
+          <View style={styles.patterns}>
+            <Text style={styles.section}>Patterns</Text>
+            {stats.map((s) => (
+              <View key={s.metricId} style={styles.statRow}>
+                <Text style={styles.statName}>{s.metricName}</Text>
+                <Text style={styles.statMeta}>
+                  avg {s.average ? s.average.toFixed(1) : "—"}
+                  {s.last7Average != null
+                    ? ` · 7d ${s.last7Average.toFixed(1)}`
+                    : ""}
+                  {s.streak > 0 ? ` · streak ${s.streak}` : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </FadeIn>
       ) : null}
 
-      <Text style={styles.section}>Days</Text>
-      {history.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyTitle}>Your first day starts here</Text>
-          <Text style={styles.empty}>
-            Rate one measure today. Your days and patterns will gather here.
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.navigate("/")}
-            style={({ pressed }) => [styles.emptyAction, pressed && styles.pressed]}
-          >
-            <Text style={styles.emptyActionText}>Rate today</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.list}>
-          {history.map((d) => (
-            <Pressable
-              key={d.dayKey}
-              style={styles.row}
-              onPress={async () => {
-                await selectDay(d.dayKey);
-                router.navigate("/");
-              }}
-            >
-              <View style={styles.rowMain}>
-                <Text style={styles.date}>{formatShortDate(d.dayKey)}</Text>
-                <Text style={styles.panchang} numberOfLines={1}>
-                  {[d.tithi, d.paksha ? formatPaksha(d.paksha as "Shukla" | "Krishna") : null, d.vaar]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </Text>
-                {d.note ? (
-                  <Text style={styles.note} numberOfLines={1}>
-                    {d.note}
+      <FadeIn delay={80}>
+        <Text style={styles.section}>Days</Text>
+        {history.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyTitle}>Your first day starts here</Text>
+            <Text style={styles.empty}>
+              Rate one measure today. Your days and patterns will gather here.
+            </Text>
+            <Button
+              label="Rate today"
+              onPress={() => router.navigate("/")}
+              style={styles.emptyAction}
+            />
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {history.map((d) => (
+              <PressableScale
+                key={d.dayKey}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${formatShortDate(d.dayKey)}`}
+                style={styles.row}
+                onPress={async () => {
+                  await selectDay(d.dayKey);
+                  router.navigate("/");
+                }}
+              >
+                <View style={styles.rowMain}>
+                  <Text style={styles.date}>{formatShortDate(d.dayKey)}</Text>
+                  <Text style={styles.marks} numberOfLines={1}>
+                    {formatHistoryMarks(d.tithi, d.paksha, d.vaar)}
                   </Text>
-                ) : null}
-              </View>
-              <Text style={styles.chev}>›</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+                  {d.note ? (
+                    <Text style={styles.note} numberOfLines={1}>
+                      {d.note}
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={styles.chev}>›</Text>
+              </PressableScale>
+            ))}
+          </View>
+        )}
+      </FadeIn>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  content: {
-    paddingHorizontal: space.xl,
-    paddingBottom: space.xxxl,
-    gap: space.md,
-  },
-  title: { ...type.title, color: colors.ink, marginTop: space.sm },
-  lead: { ...type.body, color: colors.inkSecondary, marginBottom: space.sm },
-  section: { ...type.label, color: colors.inkSecondary, marginTop: space.lg },
+  title: { ...type.title, color: colors.ink },
+  lead: { ...type.body, color: colors.inkSecondary },
+  section: { ...type.label, color: colors.inkSecondary, marginTop: space.sm },
   patterns: { gap: space.sm },
   statRow: {
-    paddingVertical: space.sm,
+    paddingVertical: space.md,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.borderSubtle,
   },
@@ -129,26 +122,19 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
   },
   rowMain: { flex: 1, gap: 2 },
   date: { ...type.headline, color: colors.ink },
-  panchang: { ...type.caption, color: colors.inkSecondary },
+  marks: { ...type.caption, color: colors.inkSecondary },
   note: { ...type.body, color: colors.ink, marginTop: 4 },
   chev: { ...type.title, color: colors.inkTertiary },
   empty: { ...type.body, color: colors.inkSecondary },
   emptyState: { gap: space.sm, paddingVertical: space.lg },
   emptyTitle: { ...type.headline, color: colors.ink },
   emptyAction: {
-    minHeight: 48,
     alignSelf: "flex-start",
-    justifyContent: "center",
     marginTop: space.sm,
+    minHeight: 48,
     paddingHorizontal: space.lg,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
   },
-  emptyActionText: { ...type.bodyMedium, color: colors.surface },
-  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
 });

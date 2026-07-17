@@ -25,6 +25,7 @@
     "expo-constants": "~57.0.3",
     "expo-font": "~57.0.0",
     "expo-haptics": "~57.0.0",
+    "expo-linear-gradient": "~57.0.1",
     "expo-linking": "~57.0.2",
     "expo-location": "~57.0.2",
     "expo-router": "~57.0.4",
@@ -48,5 +49,17 @@
     "eslint-config-expo": "^57.0.0",
     "typescript": "~6.0.3",
     "vitest": "^4.1.10"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-linear-gradient"
+        ]
+      },
+      "buildFromSource": [
+        "expo-linear-gradient"
+      ]
+    }
   }
 }

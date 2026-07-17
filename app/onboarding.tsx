@@ -1,14 +1,16 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BrandHeader } from "@/src/components/ui/brand-header";
+import { Button } from "@/src/components/ui/button";
+import { FadeIn } from "@/src/components/ui/fade-in";
+import { PressableScale } from "@/src/components/ui/pressable-scale";
+import { Screen } from "@/src/components/ui/screen";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
@@ -17,7 +19,6 @@ const MIN_METRICS = 2;
 const MAX_METRICS = 5;
 
 export default function OnboardingScreen() {
-  const insets = useSafeAreaInsets();
   const { completeOnboarding } = useApp();
   const [names, setNames] = useState<string[]>(["Energy", "Focus", "Calm"]);
   const [draft, setDraft] = useState("");
@@ -34,17 +35,17 @@ export default function OnboardingScreen() {
   const addName = useCallback((name: string) => {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError("Enter a metric name.");
+      setError("Enter a measure name.");
       return;
     }
 
     const current = namesRef.current;
     if (current.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) {
-      setError("That metric is already added.");
+      setError("That measure is already added.");
       return;
     }
     if (current.length >= MAX_METRICS) {
-      setError(`Choose up to ${MAX_METRICS} metrics.`);
+      setError(`Choose up to ${MAX_METRICS} measures.`);
       return;
     }
 
@@ -65,7 +66,7 @@ export default function OnboardingScreen() {
   const finish = useCallback(async () => {
     if (finishing.current) return;
     if (!hasMinimumMetrics) {
-      setError(`Choose at least ${MIN_METRICS} metrics.`);
+      setError(`Choose at least ${MIN_METRICS} measures.`);
       return;
     }
     finishing.current = true;
@@ -82,167 +83,138 @@ export default function OnboardingScreen() {
   }, [completeOnboarding, hasMinimumMetrics, names]);
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[
-        styles.content,
-        { paddingTop: Math.max(insets.top + space.xl, space.xxxl) },
-      ]}
-      contentInsetAdjustmentBehavior="never"
-      keyboardShouldPersistTaps="handled"
-    >
-      <Text style={styles.brand}>Anvaya</Text>
-      <Text style={styles.tagline}>Life beside the Panchang</Text>
-      <Text style={styles.lead}>
-        Rate a few personal measures each day beside today’s Tithi, Vaar, and
-        Paksha. Local, fast, no account.
-      </Text>
+    <Screen>
+      <FadeIn>
+        <BrandHeader hero tagline="Notice your days beside the calendar." />
+      </FadeIn>
 
-      <Text style={styles.section}>Your metrics</Text>
-      <Text style={styles.hint}>
-        Choose {MIN_METRICS}–{MAX_METRICS} things to rate daily. Rename or archive
-        later; history stays.
-      </Text>
-
-      <View style={styles.chips}>
-        {names.map((name) => (
-          <Pressable
-            key={name}
-            disabled={busy}
-            onPress={() => removeName(name)}
-            style={({ pressed }) => [
-              styles.chip,
-              busy && styles.controlDisabled,
-              pressed && !busy && styles.pressed,
-            ]}
-            accessibilityLabel={`Remove ${name}`}
-          >
-            <Text style={styles.chipText}>{name} ×</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.addRow}>
-        <TextInput
-          value={draft}
-          editable={!busy}
-          onChangeText={(text) => {
-            setDraft(text);
-            if (error) setError(null);
-          }}
-          placeholder="Add a metric"
-          maxLength={40}
-          placeholderTextColor={colors.inkTertiary}
-          style={styles.input}
-          onSubmitEditing={() => addName(draft)}
-          returnKeyType="done"
-        />
-        <Pressable
-          disabled={busy}
-          onPress={() => addName(draft)}
-          style={({ pressed }) => [
-            styles.addBtn,
-            busy && styles.controlDisabled,
-            pressed && !busy && styles.pressed,
-          ]}
-          accessibilityLabel="Add metric"
-        >
-          <Text style={styles.addBtnText}>Add</Text>
-        </Pressable>
-      </View>
-
-      {error ? (
-        <Text style={styles.error} accessibilityLiveRegion="polite">
-          {error}
+      <FadeIn delay={60}>
+        <Text style={styles.lead}>
+          Rate a few personal measures each day next to today’s lunar and solar
+          marks. Local, fast, no account.
         </Text>
-      ) : null}
+      </FadeIn>
 
-      <View style={styles.suggestions}>
-        {SUGGESTIONS.filter((s) => !normalizedNames.has(s.toLowerCase())).map((s) => (
+      <FadeIn delay={100}>
+        <Text style={styles.section}>Your measures</Text>
+        <Text style={styles.hint}>
+          Choose {MIN_METRICS}–{MAX_METRICS} things to rate daily. Rename or archive
+          later; history stays.
+        </Text>
+
+        <View style={styles.chips}>
+          {names.map((name) => (
+            <PressableScale
+              key={name}
+              disabled={busy}
+              onPress={() => removeName(name)}
+              style={[styles.chip, busy && styles.controlDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${name}`}
+            >
+              <Text style={styles.chipText}>{name} ×</Text>
+            </PressableScale>
+          ))}
+        </View>
+
+        <View style={styles.addRow}>
+          <TextInput
+            value={draft}
+            editable={!busy}
+            onChangeText={(text) => {
+              setDraft(text);
+              if (error) setError(null);
+            }}
+            placeholder="Add a measure"
+            maxLength={40}
+            placeholderTextColor={colors.inkTertiary}
+            style={styles.input}
+            onSubmitEditing={() => addName(draft)}
+            returnKeyType="done"
+          />
           <Pressable
-            key={s}
             disabled={busy}
-            onPress={() => addName(s)}
+            onPress={() => addName(draft)}
             style={({ pressed }) => [
-              styles.suggest,
+              styles.addBtn,
               busy && styles.controlDisabled,
               pressed && !busy && styles.pressed,
             ]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy }}
+            accessibilityLabel="Add measure"
           >
-            <Text style={styles.suggestText}>+ {s}</Text>
+            <Text style={styles.addBtnText}>Add</Text>
           </Pressable>
-        ))}
-      </View>
+        </View>
 
-      <Text style={styles.section}>Location</Text>
-      <Text style={styles.hint}>
-        Used for accurate sunrise and Panchang. Deny to use Delhi as a fallback.
-      </Text>
+        {error ? (
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {error}
+          </Text>
+        ) : null}
 
-      <Pressable
-        onPress={finish}
-        disabled={busy}
-        style={({ pressed }) => [
-          styles.cta,
-          (busy || !hasMinimumMetrics) && styles.ctaDisabled,
-          pressed && !(busy || !hasMinimumMetrics) && styles.pressed,
-        ]}
-        accessibilityRole="button"
-      >
-        {busy ? (
-          <ActivityIndicator color={colors.surface} />
-        ) : (
-          <Text style={styles.ctaText}>Begin</Text>
-        )}
-      </Pressable>
-    </ScrollView>
+        <View style={styles.suggestions}>
+          {SUGGESTIONS.filter((s) => !normalizedNames.has(s.toLowerCase())).map((s) => (
+            <PressableScale
+              key={s}
+              disabled={busy}
+              onPress={() => addName(s)}
+              style={[styles.suggest, busy && styles.controlDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${s}`}
+            >
+              <Text style={styles.suggestText}>+ {s}</Text>
+            </PressableScale>
+          ))}
+        </View>
+      </FadeIn>
+
+      <FadeIn delay={140}>
+        <Text style={styles.section}>Location</Text>
+        <Text style={styles.hint}>
+          Used for accurate sunrise and day marks. Deny to use Delhi as a fallback.
+        </Text>
+
+        <Button
+          label="Begin"
+          onPress={() => void finish()}
+          busy={busy}
+          disabled={!hasMinimumMetrics}
+          style={styles.cta}
+        />
+      </FadeIn>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    paddingHorizontal: space.xl,
-    paddingBottom: space.xxxl,
-    gap: space.md,
-  },
-  brand: {
-    ...type.display,
-    fontSize: 44,
-    lineHeight: 50,
-    letterSpacing: -0.4,
-    color: colors.ink,
-  },
-  tagline: {
-    ...type.label,
-    color: colors.accent,
-    marginTop: -space.sm,
-  },
   lead: {
     ...type.body,
     color: colors.inkSecondary,
-    marginBottom: space.lg,
+    marginBottom: space.sm,
   },
   section: {
     ...type.headline,
     color: colors.ink,
-    marginTop: space.lg,
+    marginTop: space.md,
+    marginBottom: space.sm,
   },
   hint: {
     ...type.body,
     color: colors.inkSecondary,
+    marginBottom: space.md,
   },
   error: {
     ...type.caption,
     color: colors.danger,
+    marginTop: space.sm,
   },
   chips: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: space.sm,
+    marginBottom: space.md,
   },
   chip: {
     backgroundColor: colors.accentSoft,
@@ -264,16 +236,18 @@ const styles = StyleSheet.create({
     color: colors.ink,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
+    minHeight: 48,
   },
   addBtn: {
     backgroundColor: colors.ink,
     borderRadius: radius.md,
     paddingHorizontal: space.lg,
     justifyContent: "center",
+    minHeight: 48,
   },
   addBtnText: {
     ...type.bodyMedium,
@@ -283,6 +257,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: space.sm,
+    marginTop: space.md,
   },
   suggest: {
     paddingHorizontal: space.md,
@@ -290,6 +265,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     borderWidth: 1,
     borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   suggestText: {
     ...type.caption,
@@ -297,21 +273,10 @@ const styles = StyleSheet.create({
   },
   cta: {
     marginTop: space.xl,
-    backgroundColor: colors.accent,
-    borderRadius: radius.md,
-    minHeight: 52,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  ctaDisabled: {
-    opacity: 0.45,
+    alignSelf: "stretch",
   },
   controlDisabled: {
     opacity: 0.55,
-  },
-  ctaText: {
-    ...type.headline,
-    color: colors.surface,
   },
   pressed: {
     opacity: 0.88,

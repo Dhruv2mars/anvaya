@@ -9,7 +9,7 @@ type Props = {
 };
 
 /** Parent should `key={dayKey}` so this remounts cleanly on day change. */
-export function NoteField({ dayKey, value, onCommit }: Props) {
+export function NoteField({ dayKey: _dayKey, value, onCommit }: Props) {
   const [draft, setDraft] = useState(value);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftRef = useRef(value);
@@ -87,10 +87,10 @@ const styles = StyleSheet.create({
     color: colors.ink,
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSubtle,
     borderRadius: radius.md,
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
-    minHeight: 48,
+    minHeight: 52,
   },
 });

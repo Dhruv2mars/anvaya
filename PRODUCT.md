@@ -1,10 +1,10 @@
 # PRODUCT.md
 
 ## Purpose
-Anvaya helps people notice their days beside the Hindu Panchang — not as astrology theatre, but as lived calendar context plus personal ratings.
+Anvaya helps people notice their days beside lunar and solar calendar marks — lived rhythm context plus personal ratings. Local-first, private, fast.
 
 ## Audience
-People who already orient life around Tithi / Paksha / Vaar and want a fast, private daily log.
+People who want a calm daily check-in next to sunrise-based day marks, without accounts or cloud.
 
 ## Platform
 adaptive
@@ -13,10 +13,10 @@ adaptive
 product
 
 ## Voice
-Calm, precise, spare. Sanskrit terms used correctly without ornamental religiosity.
+Calm, precise, spare. Modern and secular. Prefer “day marks,” “lunar day,” “waxing/waning,” “rhythm,” and “measures” over religious framing.
 
 ## Core loop
-Open → today + Panchang → rate 1–5 → optional note → leave (<10s).
+Open → today + day marks → rate 1–5 → optional note → leave (<10s).
 
 ## Non-goals (v1)
 Tasks, habits, journal essays, horoscope, social, cloud sync, AI chat.

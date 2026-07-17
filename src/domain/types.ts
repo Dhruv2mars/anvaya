@@ -1,4 +1,4 @@
-export type DayKey = string; // YYYY-MM-DD — Hindu day keyed to sunrise civil date
+export type DayKey = string; // YYYY-MM-DD — sunrise-based day key at observer longitude
 
 export type Metric = {
   id: string;

@@ -1,8 +1,8 @@
 # Anvaya
 
-Local-first mobile app for tracking life through the Hindu Panchang.
+Local-first mobile app for noticing your days beside lunar and solar calendar marks.
 
-Open → see today’s Tithi, Vaar, Paksha → rate personal metrics 1–5 → optional one-line note → leave. Autosave. No account.
+Open → see today’s day marks → rate personal measures 1–5 → optional one-line note → leave. Autosave. No account.
 
 ## Run
 
@@ -33,12 +33,12 @@ bunx eas build --platform android --profile production
 ## Stack
 
 - Expo Router (SDK 57) · TypeScript · SQLite (`expo-sqlite`)
-- Panchang: `@ishubhamx/panchangam-js` (astronomy-engine / Swiss Ephemeris–class; Udaya/sunrise day)
+- Day marks: `@ishubhamx/panchangam-js` (astronomy-engine; sunrise-based day)
 - Location: `expo-location` (optional; Delhi fallback)
 
 ## Product decisions
 
-- **Hindu day** = sunrise → next sunrise for the resolved location.
-- Metrics are user-owned; archive preserves historical ratings.
+- **Day** = sunrise → next sunrise for the resolved location.
+- Measures are user-owned; archive preserves historical ratings.
 - Intelligence in v1 = deterministic averages / streaks only.
 - No cloud, auth, backup, or AI in v1.
