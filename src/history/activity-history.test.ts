@@ -81,9 +81,9 @@ describe("ActivityHistory", () => {
     let call = 0;
     const history = createActivityHistory({
       async listDaysWithActivity() {
-        call += 1;
-        if (call === 1) await slowGate;
-        return [day(call === 1 ? "2026-07-10" : "2026-07-18")];
+        const invocation = ++call;
+        if (invocation === 1) await slowGate;
+        return [day(invocation === 1 ? "2026-07-10" : "2026-07-18")];
       },
       async getRecentRatings() {
         return [];

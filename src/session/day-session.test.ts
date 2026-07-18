@@ -327,4 +327,44 @@ describe("DaySession", () => {
     expect(session.getSnapshot().selectedDayKey).toBe("2026-07-10");
     expect(compute).not.toHaveBeenCalled();
   });
+
+  it("discards an in-flight past-day load when location changes", async () => {
+    let hinduToday = "2026-07-18";
+    const { deps } = createMemoryDeps({
+      resolveHinduDayKey: () => hinduToday,
+    });
+    let releaseSlow: (() => void) | undefined;
+    const slowGate = new Promise<void>((resolve) => {
+      releaseSlow = resolve;
+    });
+    const originalUpsert = deps.upsertDayPanchang;
+    deps.upsertDayPanchang = async (snapshot) => {
+      if (snapshot.dayKey === "2026-07-11") {
+        await slowGate;
+      }
+      return originalUpsert(snapshot);
+    };
+
+    const session = createDaySession(
+      { location: delhi, todayKey: "2026-07-18" },
+      deps
+    );
+    await session.selectDay("2026-07-10");
+    const slow = session.selectDay("2026-07-11");
+    const mumbai: LocationFix = {
+      ...delhi,
+      latitude: 19.076,
+      longitude: 72.8777,
+      source: "gps",
+    };
+    hinduToday = "2026-07-18";
+    await session.notifyLocation(mumbai);
+    releaseSlow?.();
+    await slow;
+
+    const snap = session.getSnapshot();
+    // Stale 07-11 load discarded; stay on 07-10 with the new location.
+    expect(snap.selectedDayKey).toBe("2026-07-10");
+    expect(snap.location.longitude).toBe(72.8777);
+  });
 });

@@ -34,4 +34,16 @@ describe("quiet patterns", () => {
     const stats = computeMeasureStats(measures, ratings, "2026-07-11");
     expect(stats[0]!.streak).toBe(2);
   });
+
+  it("excludes future-dated ratings from as-of-today statistics", () => {
+    const ratings: Rating[] = [
+      { id: "1", dayKey: "2026-07-10", measureId: "m1", value: 4, updatedAt: 1 },
+      { id: "2", dayKey: "2026-07-11", measureId: "m1", value: 2, updatedAt: 1 },
+      { id: "3", dayKey: "2026-07-12", measureId: "m1", value: 5, updatedAt: 1 },
+    ];
+    const stats = computeMeasureStats(measures, ratings, "2026-07-11");
+    expect(stats[0]!.count).toBe(2);
+    expect(stats[0]!.average).toBeCloseTo(3);
+    expect(stats[0]!.last7Average).toBeCloseTo(3);
+  });
 });

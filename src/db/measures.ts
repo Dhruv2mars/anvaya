@@ -28,14 +28,14 @@ export async function listAllMeasures(): Promise<Measure[]> {
 export function completeOnboardingSetup(measureNames: string[]): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withTransactionAsync(async () => {
-      const completed = await db.getFirstAsync<{ value: string }>(
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      const completed = await txn.getFirstAsync<{ value: string }>(
         `SELECT value FROM settings WHERE key = ?`,
         settingsKeys.onboardingComplete
       );
       if (decodeOnboarded(completed?.value ?? null)) return;
 
-      const max = await db.getFirstAsync<{ m: number | null }>(
+      const max = await txn.getFirstAsync<{ m: number | null }>(
         `SELECT MAX(sort_order) as m FROM metrics WHERE archived_at IS NULL`
       );
       let sortOrder = (max?.m ?? -1) + 1;
@@ -43,7 +43,7 @@ export function completeOnboardingSetup(measureNames: string[]): Promise<void> {
       for (const name of measureNames) {
         const trimmed = name.trim();
         if (!trimmed) continue;
-        await db.runAsync(
+        await txn.runAsync(
           `INSERT INTO metrics (id, name, sort_order, archived_at, created_at) VALUES (?, ?, ?, NULL, ?)`,
           nanoid(),
           trimmed,
@@ -51,7 +51,7 @@ export function completeOnboardingSetup(measureNames: string[]): Promise<void> {
           now
         );
       }
-      await db.runAsync(
+      await txn.runAsync(
         `INSERT INTO settings (key, value) VALUES (?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
         settingsKeys.onboardingComplete,
@@ -103,8 +103,8 @@ export function archiveMeasure(id: string): Promise<void> {
 export function deleteArchivedMeasure(id: string): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withTransactionAsync(async () => {
-      const measure = await db.getFirstAsync<{ archived_at: number | null }>(
+    await db.withExclusiveTransactionAsync(async (txn) => {
+      const measure = await txn.getFirstAsync<{ archived_at: number | null }>(
         `SELECT archived_at FROM metrics WHERE id = ?`,
         id
       );
@@ -113,8 +113,8 @@ export function deleteArchivedMeasure(id: string): Promise<void> {
         throw new Error("Archive a measure before deleting it");
       }
 
-      await db.runAsync(`DELETE FROM ratings WHERE metric_id = ?`, id);
-      await db.runAsync(`DELETE FROM metrics WHERE id = ?`, id);
+      await txn.runAsync(`DELETE FROM ratings WHERE metric_id = ?`, id);
+      await txn.runAsync(`DELETE FROM metrics WHERE id = ?`, id);
     });
   });
 }
@@ -137,11 +137,11 @@ export function restoreMeasure(id: string): Promise<void> {
 export function reorderMeasures(orderedIds: string[]): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withTransactionAsync(async () => {
+    await db.withExclusiveTransactionAsync(async (txn) => {
       for (let i = 0; i < orderedIds.length; i++) {
         const id = orderedIds[i];
         if (!id) continue;
-        await db.runAsync(`UPDATE metrics SET sort_order = ? WHERE id = ?`, i, id);
+        await txn.runAsync(`UPDATE metrics SET sort_order = ? WHERE id = ?`, i, id);
       }
     });
   });

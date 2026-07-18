@@ -92,6 +92,7 @@ export async function getAllRatingsForMeasure(measureId: string): Promise<Rating
 }
 
 export async function getRecentRatings(limitDays = 30): Promise<Rating[]> {
+  if (limitDays <= 0) return [];
   const db = await getDb();
   const rows = await db.getAllAsync<RatingRow>(
     `SELECT * FROM ratings ORDER BY day_key DESC`
@@ -100,7 +101,8 @@ export async function getRecentRatings(limitDays = 30): Promise<Rating[]> {
   const newest = rows[0]!.day_key;
   const [y, m, d] = newest.split("-").map(Number);
   const cutoffDate = new Date(y!, m! - 1, d!);
-  cutoffDate.setDate(cutoffDate.getDate() - limitDays);
+  // Inclusive window: newest day plus (limitDays - 1) preceding days.
+  cutoffDate.setDate(cutoffDate.getDate() - (limitDays - 1));
   const cy = cutoffDate.getFullYear();
   const cm = String(cutoffDate.getMonth() + 1).padStart(2, "0");
   const cd = String(cutoffDate.getDate()).padStart(2, "0");

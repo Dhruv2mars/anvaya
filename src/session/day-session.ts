@@ -213,6 +213,8 @@ export function createDaySession(
         !snapshot.selectedDayKey ||
         snapshot.selectedDayKey === snapshot.todayKey;
       const todayKey = deps.resolveHinduDayKey(now(), location);
+      // Drop in-flight selectDay loads that captured the old location/panchang.
+      loadGeneration += 1;
       patch({ location, todayKey });
       if (wasViewingToday) {
         await loadDay(todayKey, location);

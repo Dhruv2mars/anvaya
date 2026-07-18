@@ -22,7 +22,7 @@ export function computeMeasureStats(
 ): MeasureStats[] {
   return measures.map((measure) => {
     const mine = ratings
-      .filter((r) => r.measureId === measure.id)
+      .filter((r) => r.measureId === measure.id && r.dayKey <= todayKey)
       .sort((a, b) => a.dayKey.localeCompare(b.dayKey));
     const count = mine.length;
     const average =

@@ -18,25 +18,41 @@ export function encodeLocationCache(fix: LocationFix): string {
   return JSON.stringify(fix);
 }
 
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
 export function decodeLocationCache(raw: string | null): LocationFix | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<LocationFix>;
+    const { latitude, longitude, altitude } = parsed;
     if (
-      typeof parsed.latitude === "number" &&
-      typeof parsed.longitude === "number"
+      !isFiniteNumber(latitude) ||
+      !isFiniteNumber(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
     ) {
-      return {
-        latitude: parsed.latitude,
-        longitude: parsed.longitude,
-        altitude: typeof parsed.altitude === "number" ? parsed.altitude : 0,
-        source: "cached",
-      };
+      return null;
     }
+    const alt =
+      altitude === undefined
+        ? 0
+        : isFiniteNumber(altitude)
+          ? altitude
+          : null;
+    if (alt === null) return null;
+    return {
+      latitude,
+      longitude,
+      altitude: alt,
+      source: "cached",
+    };
   } catch {
     return null;
   }
-  return null;
 }
 
 /** String KV port — SQLite prod, memory tests. */

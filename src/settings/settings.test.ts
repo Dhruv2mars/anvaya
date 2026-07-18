@@ -34,6 +34,29 @@ describe("settings codecs", () => {
     });
     expect(decodeLocationCache("not-json")).toBeNull();
   });
+
+  it("rejects non-finite or out-of-range cached coordinates", () => {
+    expect(
+      decodeLocationCache(
+        JSON.stringify({ latitude: Infinity, longitude: 77.59, altitude: 0 })
+      )
+    ).toBeNull();
+    expect(
+      decodeLocationCache(
+        JSON.stringify({ latitude: 91, longitude: 77.59, altitude: 0 })
+      )
+    ).toBeNull();
+    expect(
+      decodeLocationCache(
+        JSON.stringify({ latitude: 12.97, longitude: -181, altitude: 0 })
+      )
+    ).toBeNull();
+    expect(
+      decodeLocationCache(
+        JSON.stringify({ latitude: 12.97, longitude: 77.59, altitude: NaN })
+      )
+    ).toBeNull();
+  });
 });
 
 describe("SettingsStore", () => {
