@@ -139,8 +139,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const snap = session.getSnapshot();
         setDaySnap(snap);
         setTodayKey(snap.todayKey);
+        const todayChanged = todayKeyRef.current !== snap.todayKey;
         todayKeyRef.current = snap.todayKey;
         setLocation(snap.location);
+        // Patterns are keyed off todayKey; refresh when DaySession advances
+        // it (location update, goToday after sunrise) without AppState.
+        if (todayChanged) {
+          void refreshActivity();
+        }
       });
       const unsubActivity = session.onActivityChanged(() => {
         void refreshActivity();
