@@ -145,12 +145,15 @@ export function createDaySession(
       const dayKey = snapshot.selectedDayKey;
       if (!dayKey) return;
       const updated = await deps.upsertRating(dayKey, measureId, value);
-      patch({
-        ratings: [
-          ...snapshot.ratings.filter((r) => r.measureId !== measureId),
-          updated,
-        ],
-      });
+      // Drop in-memory patch if the user navigated away mid-write.
+      if (snapshot.selectedDayKey === dayKey) {
+        patch({
+          ratings: [
+            ...snapshot.ratings.filter((r) => r.measureId !== measureId),
+            updated,
+          ],
+        });
+      }
       emitActivity(dayKey);
     },
 
@@ -158,18 +161,22 @@ export function createDaySession(
       const dayKey = snapshot.selectedDayKey;
       if (!dayKey) return;
       await deps.clearRating(dayKey, measureId);
-      patch({
-        ratings: snapshot.ratings.filter((r) => r.measureId !== measureId),
-      });
+      if (snapshot.selectedDayKey === dayKey) {
+        patch({
+          ratings: snapshot.ratings.filter((r) => r.measureId !== measureId),
+        });
+      }
       emitActivity(dayKey);
     },
 
     async setNote(note) {
       const dayKey = snapshot.selectedDayKey;
       if (!dayKey) return;
-      const trimmed = await deps.setDayNote(dayKey, note);
-      const { location, day } = snapshot;
+      // Capture day context before await — snapshot may change on navigation.
+      const location = snapshot.location;
+      const day = snapshot.day;
       const panchang = lastPanchang;
+      const trimmed = await deps.setDayNote(dayKey, note);
       const nextDay: DayRecord = day
         ? { ...day, note: trimmed, noteUpdatedAt: Date.now() }
         : {
@@ -186,7 +193,9 @@ export function createDaySession(
             longitude: location.longitude,
             updatedAt: Date.now(),
           };
-      patch({ day: nextDay });
+      if (snapshot.selectedDayKey === dayKey) {
+        patch({ day: nextDay });
+      }
       emitActivity(dayKey);
     },
 

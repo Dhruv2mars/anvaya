@@ -137,6 +137,102 @@ describe("DaySession", () => {
     expect(activity).toEqual(["2026-07-18", "2026-07-18"]);
   });
 
+  it("does not apply a late clearRating after navigating away", async () => {
+    const { deps, ratings } = createMemoryDeps();
+    ratings.set("2026-07-18", [
+      {
+        id: "2026-07-18:energy",
+        dayKey: "2026-07-18",
+        measureId: "energy",
+        value: 4,
+        updatedAt: 1,
+      },
+    ]);
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalClear = deps.clearRating;
+    deps.clearRating = async (dayKey, measureId) => {
+      await gate;
+      return originalClear(dayKey, measureId);
+    };
+
+    const session = createDaySession(
+      { location: delhi, todayKey: "2026-07-18" },
+      deps
+    );
+    await session.selectDay("2026-07-18");
+    expect(session.getSnapshot().ratings).toHaveLength(1);
+
+    const pending = session.clearRating("energy");
+    await session.selectDay("2026-07-10");
+    release?.();
+    await pending;
+
+    expect(session.getSnapshot().selectedDayKey).toBe("2026-07-10");
+    expect(session.getSnapshot().ratings).toEqual([]);
+    expect(ratings.get("2026-07-18") ?? []).toEqual([]);
+  });
+
+  it("does not apply a late rating patch after navigating away", async () => {
+    const { deps, ratings } = createMemoryDeps();
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalUpsert = deps.upsertRating;
+    deps.upsertRating = async (dayKey, measureId, value) => {
+      await gate;
+      return originalUpsert(dayKey, measureId, value);
+    };
+
+    const session = createDaySession(
+      { location: delhi, todayKey: "2026-07-18" },
+      deps
+    );
+    const activity: string[] = [];
+    session.onActivityChanged((dayKey) => activity.push(dayKey));
+
+    await session.selectDay("2026-07-18");
+    const pending = session.setRating("energy", 4);
+    await session.selectDay("2026-07-10");
+    release?.();
+    await pending;
+
+    expect(session.getSnapshot().selectedDayKey).toBe("2026-07-10");
+    expect(session.getSnapshot().ratings).toEqual([]);
+    expect(ratings.get("2026-07-18")?.[0]?.value).toBe(4);
+    expect(activity).toEqual(["2026-07-18"]);
+  });
+
+  it("does not copy a late note onto a newly selected day", async () => {
+    const { deps, notes } = createMemoryDeps();
+    let release: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const originalNote = deps.setDayNote;
+    deps.setDayNote = async (dayKey, note) => {
+      await gate;
+      return originalNote(dayKey, note);
+    };
+
+    const session = createDaySession(
+      { location: delhi, todayKey: "2026-07-18" },
+      deps
+    );
+    await session.selectDay("2026-07-18");
+    const pending = session.setNote("calm morning");
+    await session.selectDay("2026-07-10");
+    release?.();
+    await pending;
+
+    expect(session.getSnapshot().selectedDayKey).toBe("2026-07-10");
+    expect(session.getSnapshot().day?.note).toBe("");
+    expect(notes.get("2026-07-18")).toBe("calm morning");
+  });
+
   it("discards stale loads when selectDay is called rapidly", async () => {
     const { deps } = createMemoryDeps();
     let releaseSlow: (() => void) | undefined;
