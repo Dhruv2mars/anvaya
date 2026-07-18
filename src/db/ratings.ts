@@ -91,21 +91,31 @@ export async function getAllRatingsForMeasure(measureId: string): Promise<Rating
   return rows.map(mapRating);
 }
 
-export async function getRecentRatings(limitDays = 30): Promise<Rating[]> {
+export async function getRecentRatings(
+  limitDays = 30,
+  todayKey?: string
+): Promise<Rating[]> {
   if (limitDays <= 0) return [];
   const db = await getDb();
   const rows = await db.getAllAsync<RatingRow>(
     `SELECT * FROM ratings ORDER BY day_key DESC`
   );
   if (rows.length === 0) return [];
-  const newest = rows[0]!.day_key;
-  const [y, m, d] = newest.split("-").map(Number);
+
+  // Prefer an as-of-today anchor so a future-dated row cannot shift the window.
+  const eligible = todayKey
+    ? rows.filter((r) => r.day_key <= todayKey)
+    : rows;
+  if (eligible.length === 0) return [];
+
+  const anchor = todayKey ?? eligible[0]!.day_key;
+  const [y, m, d] = anchor.split("-").map(Number);
   const cutoffDate = new Date(y!, m! - 1, d!);
-  // Inclusive window: newest day plus (limitDays - 1) preceding days.
+  // Inclusive window ending at the anchor: anchor plus (limitDays - 1) preceding days.
   cutoffDate.setDate(cutoffDate.getDate() - (limitDays - 1));
   const cy = cutoffDate.getFullYear();
   const cm = String(cutoffDate.getMonth() + 1).padStart(2, "0");
   const cd = String(cutoffDate.getDate()).padStart(2, "0");
   const cutoff = `${cy}-${cm}-${cd}`;
-  return rows.filter((r) => r.day_key >= cutoff).map(mapRating);
+  return eligible.filter((r) => r.day_key >= cutoff).map(mapRating);
 }

@@ -19,7 +19,7 @@ export type ActivityHistorySnapshot = {
  */
 export type ActivityHistoryDeps = {
   listDaysWithActivity: (limit: number) => Promise<DayRecord[]>;
-  getRecentRatings: (limitDays: number) => Promise<Rating[]>;
+  getRecentRatings: (limitDays: number, todayKey: string) => Promise<Rating[]>;
 };
 
 export type ActivityHistory = {
@@ -59,7 +59,7 @@ export function createActivityHistory(deps: ActivityHistoryDeps): ActivityHistor
       const gen = ++loadGeneration;
       const [days, ratings] = await Promise.all([
         deps.listDaysWithActivity(DAYS_LIMIT),
-        deps.getRecentRatings(RATINGS_WINDOW_DAYS),
+        deps.getRecentRatings(RATINGS_WINDOW_DAYS, todayKey),
       ]);
       if (gen !== loadGeneration) return;
       const patterns =

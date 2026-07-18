@@ -36,8 +36,9 @@ describe("ActivityHistory", () => {
         listedLimits.push(limit);
         return [day("2026-07-18"), day("2026-07-17")];
       },
-      async getRecentRatings(limitDays) {
+      async getRecentRatings(limitDays, today) {
         ratingWindows.push(limitDays);
+        expect(today).toBe("2026-07-18");
         const ratings: Rating[] = [
           {
             id: "1",
