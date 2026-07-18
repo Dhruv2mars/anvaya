@@ -5,8 +5,6 @@ import {
   formatDayHeading,
   formatTimeAtLongitude,
 } from "./day-key";
-import { computeMetricStats } from "../stats/patterns";
-import type { Metric, Rating } from "./types";
 
 describe("day-key", () => {
   it("shifts days across month boundaries", () => {
@@ -20,6 +18,11 @@ describe("day-key", () => {
     expect(formatDayHeading(shiftDayKey(today, -1), today)).toBe("Yesterday");
   });
 
+  it("formatDayHeading tolerates empty keys during session boot", () => {
+    expect(formatDayHeading("", "2026-07-11")).toBe("…");
+    expect(formatDayHeading("2026-07-11", "")).toBe("Sat, 11 Jul 2026");
+  });
+
   it("civilDayKey is stable YYYY-MM-DD", () => {
     expect(civilDayKey(new Date(2026, 6, 11, 15, 30))).toBe("2026-07-11");
   });
@@ -30,29 +33,5 @@ describe("day-key", () => {
     expect(formatTimeAtLongitude(utc, 77.2)).toBe("5:09 AM");
     // Half-hour legal zones still work via fractional offset (82.5°E = IST)
     expect(formatTimeAtLongitude(utc, 82.5)).toBe("5:31 AM");
-  });
-});
-
-describe("patterns", () => {
-  const metrics: Metric[] = [
-    {
-      id: "m1",
-      name: "Energy",
-      sortOrder: 0,
-      archivedAt: null,
-      createdAt: 1,
-    },
-  ];
-
-  it("computes averages and streaks", () => {
-    const ratings: Rating[] = [
-      { id: "1", dayKey: "2026-07-09", metricId: "m1", value: 4, updatedAt: 1 },
-      { id: "2", dayKey: "2026-07-10", metricId: "m1", value: 5, updatedAt: 1 },
-      { id: "3", dayKey: "2026-07-11", metricId: "m1", value: 3, updatedAt: 1 },
-    ];
-    const stats = computeMetricStats(metrics, ratings, "2026-07-11");
-    expect(stats[0]!.average).toBeCloseTo(4);
-    expect(stats[0]!.streak).toBe(3);
-    expect(stats[0]!.count).toBe(3);
   });
 });

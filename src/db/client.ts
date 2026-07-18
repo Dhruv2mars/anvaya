@@ -30,6 +30,31 @@ export function runDbWrite<T>(task: () => Promise<T>): Promise<T> {
   return operation;
 }
 
+type DbExecutor = Pick<
+  SQLite.SQLiteDatabase,
+  "runAsync" | "getFirstAsync" | "getAllAsync" | "execAsync"
+>;
+
+/**
+ * Run a multi-statement write atomically.
+ * Prefer exclusive transactions on native; Expo SQLite does not support them on web,
+ * so fall back to withTransactionAsync there (still serialized via runDbWrite).
+ */
+export async function withDbTransaction(
+  db: SQLite.SQLiteDatabase,
+  task: (executor: DbExecutor) => Promise<void>
+): Promise<void> {
+  if (process.env.EXPO_OS === "web") {
+    await db.withTransactionAsync(async () => {
+      await task(db);
+    });
+    return;
+  }
+  await db.withExclusiveTransactionAsync(async (txn) => {
+    await task(txn);
+  });
+}
+
 /** Test helper — reset singleton between tests. */
 export function resetDbSingleton(): void {
   dbPromise = null;

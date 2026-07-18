@@ -13,22 +13,22 @@ import { Screen } from "@/src/components/ui/screen";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
-export default function MetricsScreen() {
+export default function MeasuresScreen() {
   const {
-    allMetrics,
-    addMetric,
-    renameMetric,
-    archiveMetric,
-    deleteArchivedMetric,
-    restoreMetric,
-    reorderMetrics,
+    allMeasures,
+    addMeasure,
+    renameMeasure,
+    archiveMeasure,
+    deleteArchivedMeasure,
+    restoreMeasure,
+    reorderMeasures,
   } = useApp();
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 
-  const active = allMetrics.filter((m) => m.archivedAt == null);
-  const archived = allMetrics.filter((m) => m.archivedAt != null);
+  const active = allMeasures.filter((m) => m.archivedAt == null);
+  const archived = allMeasures.filter((m) => m.archivedAt != null);
 
   return (
     <Screen>
@@ -50,7 +50,7 @@ export default function MetricsScreen() {
             style={styles.input}
             onSubmitEditing={async () => {
               if (!draft.trim()) return;
-              await addMetric(draft);
+              await addMeasure(draft);
               setDraft("");
             }}
           />
@@ -60,7 +60,7 @@ export default function MetricsScreen() {
             style={styles.addBtn}
             onPress={async () => {
               if (!draft.trim()) return;
-              await addMetric(draft);
+              await addMeasure(draft);
               setDraft("");
             }}
           >
@@ -84,12 +84,12 @@ export default function MetricsScreen() {
                   autoFocus
                   onBlur={async () => {
                     if (editName.trim() && editName !== m.name) {
-                      await renameMetric(m.id, editName);
+                      await renameMeasure(m.id, editName);
                     }
                     setEditingId((current) => (current === m.id ? null : current));
                   }}
                   onSubmitEditing={async () => {
-                    if (editName.trim()) await renameMetric(m.id, editName);
+                    if (editName.trim()) await renameMeasure(m.id, editName);
                     setEditingId((current) => (current === m.id ? null : current));
                   }}
                 />
@@ -118,7 +118,7 @@ export default function MetricsScreen() {
                     const tmp = next[index - 1]!;
                     next[index - 1] = next[index]!;
                     next[index] = tmp;
-                    await reorderMetrics(next);
+                    await reorderMeasures(next);
                   }}
                   style={styles.iconBtn}
                   accessibilityLabel={`Move ${m.name} up`}
@@ -135,7 +135,7 @@ export default function MetricsScreen() {
                     const tmp = next[index + 1]!;
                     next[index + 1] = next[index]!;
                     next[index] = tmp;
-                    await reorderMetrics(next);
+                    await reorderMeasures(next);
                   }}
                   style={styles.iconBtn}
                   accessibilityLabel={`Move ${m.name} down`}
@@ -153,7 +153,7 @@ export default function MetricsScreen() {
                         {
                           text: "Archive",
                           style: "destructive",
-                          onPress: () => void archiveMetric(m.id),
+                          onPress: () => void archiveMeasure(m.id),
                         },
                       ]
                     );
@@ -178,7 +178,7 @@ export default function MetricsScreen() {
               <View style={styles.actions}>
                 <Pressable
                   style={styles.iconBtn}
-                  onPress={() => void restoreMetric(m.id)}
+                  onPress={() => void restoreMeasure(m.id)}
                   accessibilityRole="button"
                   accessibilityLabel={`Restore ${m.name}`}
                 >
@@ -197,7 +197,7 @@ export default function MetricsScreen() {
                         {
                           text: "Delete permanently",
                           style: "destructive",
-                          onPress: () => void deleteArchivedMetric(m.id),
+                          onPress: () => void deleteArchivedMeasure(m.id),
                         },
                       ]
                     );

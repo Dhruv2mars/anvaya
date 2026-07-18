@@ -1,30 +1,27 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { PanchangSnapshot } from "@/src/domain/types";
-import { formatTimeAtLongitude } from "@/src/domain/day-key";
-import {
-  formatLunarDayLine,
-  formatMarksSecondary,
-} from "@/src/domain/display";
+import type { ObservedDay } from "@/src/domain/observed-day";
+import { sunriseCaption } from "@/src/domain/observed-day";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
-  panchang: PanchangSnapshot;
+  observed: ObservedDay;
   locationLabel: string;
 };
 
 /** Lunar and solar day marks for the selected sunrise-based day. */
-export function DayMarks({ panchang, locationLabel }: Props) {
-  const sunrise = formatTimeAtLongitude(panchang.sunrise, panchang.longitude);
-  const primary = formatLunarDayLine(panchang.tithi, panchang.paksha, panchang.tithiIndex);
-  const secondary = formatMarksSecondary(panchang.vaar);
+export function DayMarks({ observed, locationLabel }: Props) {
+  const sunrise = sunriseCaption(observed);
 
   return (
     <View style={styles.wrap} accessibilityRole="summary">
       <Text style={styles.kicker}>Day marks</Text>
-      {primary ? <Text style={styles.primary}>{primary}</Text> : null}
-      {secondary ? <Text style={styles.secondary}>{secondary}</Text> : null}
+      {observed.primary ? <Text style={styles.primary}>{observed.primary}</Text> : null}
+      {observed.secondary ? (
+        <Text style={styles.secondary}>{observed.secondary}</Text>
+      ) : null}
       <Text style={styles.meta}>
-        Sunrise {sunrise} · {locationLabel}
+        {sunrise ? `Sunrise ${sunrise} · ` : ""}
+        {locationLabel}
       </Text>
     </View>
   );

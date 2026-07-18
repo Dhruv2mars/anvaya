@@ -1,4 +1,3 @@
-import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button } from "@/src/components/ui/button";
@@ -7,25 +6,12 @@ import { PressableScale } from "@/src/components/ui/pressable-scale";
 import { Screen } from "@/src/components/ui/screen";
 import { useApp } from "@/src/hooks/app-store";
 import { formatShortDate } from "@/src/domain/day-key";
-import { formatHistoryMarks } from "@/src/domain/display";
+import { historyMarksLine, observeStored } from "@/src/domain/observed-day";
 import { colors, radius, space, type } from "@/src/theme/tokens";
-import { computeMetricStats } from "@/src/stats/patterns";
-import * as repo from "@/src/db/repository";
-import type { Rating } from "@/src/domain/types";
 
 export default function HistoryScreen() {
-  const { history, metrics, todayKey, selectDay } = useApp();
+  const { history, patterns, selectDay } = useApp();
   const router = useRouter();
-  const [allRatings, setAllRatings] = useState<Rating[]>([]);
-
-  useEffect(() => {
-    void repo.getRecentRatings(60).then(setAllRatings);
-  }, [history]);
-
-  const stats = useMemo(
-    () => computeMetricStats(metrics, allRatings, todayKey),
-    [metrics, allRatings, todayKey]
-  );
 
   return (
     <Screen>
@@ -34,13 +20,13 @@ export default function HistoryScreen() {
         <Text style={styles.lead}>Past days and quiet patterns. Tap a day to edit.</Text>
       </FadeIn>
 
-      {stats.length > 0 ? (
+      {patterns.length > 0 ? (
         <FadeIn delay={40}>
           <View style={styles.patterns}>
             <Text style={styles.section}>Patterns</Text>
-            {stats.map((s) => (
-              <View key={s.metricId} style={styles.statRow}>
-                <Text style={styles.statName}>{s.metricName}</Text>
+            {patterns.map((s) => (
+              <View key={s.measureId} style={styles.statRow}>
+                <Text style={styles.statName}>{s.measureName}</Text>
                 <Text style={styles.statMeta}>
                   avg {s.average ? s.average.toFixed(1) : "—"}
                   {s.last7Average != null
@@ -84,7 +70,7 @@ export default function HistoryScreen() {
                 <View style={styles.rowMain}>
                   <Text style={styles.date}>{formatShortDate(d.dayKey)}</Text>
                   <Text style={styles.marks} numberOfLines={1}>
-                    {formatHistoryMarks(d.tithi, d.paksha, d.vaar)}
+                    {historyMarksLine(observeStored(d))}
                   </Text>
                   {d.note ? (
                     <Text style={styles.note} numberOfLines={1}>

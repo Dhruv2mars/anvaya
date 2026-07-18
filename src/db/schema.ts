@@ -2,6 +2,7 @@ export const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
+-- Domain name: Measure. Table/column names keep legacy "metrics" / "metric_id".
 CREATE TABLE IF NOT EXISTS metrics (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,

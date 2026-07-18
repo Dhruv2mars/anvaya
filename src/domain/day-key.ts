@@ -25,6 +25,12 @@ export function noonAtLongitude(dayKey: string, longitude: number): Date {
   return new Date(Date.UTC(y, m! - 1, d!, 12, 0, 0) - offsetMs);
 }
 
+const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isDayKey(value: string): boolean {
+  return DAY_KEY_RE.test(value);
+}
+
 export function parseDayKey(dayKey: string): Date {
   // Noon local — for display helpers only
   return parseISO(`${dayKey}T12:00:00`);
@@ -36,13 +42,15 @@ export function shiftDayKey(dayKey: string, deltaDays: number): string {
 }
 
 export function formatDayHeading(dayKey: string, todayKey: string): string {
+  if (!isDayKey(dayKey)) return "…";
   if (dayKey === todayKey) return "Today";
-  if (dayKey === shiftDayKey(todayKey, -1)) return "Yesterday";
-  if (dayKey === shiftDayKey(todayKey, 1)) return "Tomorrow";
+  if (isDayKey(todayKey) && dayKey === shiftDayKey(todayKey, -1)) return "Yesterday";
+  if (isDayKey(todayKey) && dayKey === shiftDayKey(todayKey, 1)) return "Tomorrow";
   return format(parseDayKey(dayKey), "EEE, d MMM yyyy");
 }
 
 export function formatShortDate(dayKey: string): string {
+  if (!isDayKey(dayKey)) return "…";
   return format(parseDayKey(dayKey), "d MMM");
 }
 
