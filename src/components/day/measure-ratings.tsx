@@ -1,19 +1,19 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { Metric, Rating } from "@/src/domain/types";
+import type { Measure, Rating } from "@/src/domain/types";
 import { RatingRow } from "@/src/components/day/rating-row";
 import { colors, space, type } from "@/src/theme/tokens";
 
 type Props = {
-  metrics: Metric[];
+  measures: Measure[];
   ratings: Rating[];
-  onRate: (metricId: string, value: number) => void;
-  onClear: (metricId: string) => void;
+  onRate: (measureId: string, value: number) => void;
+  onClear: (measureId: string) => void;
 };
 
-export function MetricRatings({ metrics, ratings, onRate, onClear }: Props) {
-  const byMetric = new Map(ratings.map((r) => [r.metricId, r.value]));
+export function MeasureRatings({ measures, ratings, onRate, onClear }: Props) {
+  const byMeasure = new Map(ratings.map((r) => [r.measureId, r.value]));
 
-  if (metrics.length === 0) {
+  if (measures.length === 0) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>No measures yet</Text>
@@ -27,13 +27,13 @@ export function MetricRatings({ metrics, ratings, onRate, onClear }: Props) {
 
   return (
     <View style={styles.list}>
-      {metrics.map((metric) => (
-        <View key={metric.id} style={styles.item}>
-          <Text style={styles.name}>{metric.name}</Text>
+      {measures.map((measure) => (
+        <View key={measure.id} style={styles.item}>
+          <Text style={styles.name}>{measure.name}</Text>
           <RatingRow
-            value={byMetric.get(metric.id) ?? null}
-            onChange={(v) => onRate(metric.id, v)}
-            onClear={() => onClear(metric.id)}
+            value={byMeasure.get(measure.id) ?? null}
+            onChange={(v) => onRate(measure.id, v)}
+            onClear={() => onClear(measure.id)}
           />
         </View>
       ))}

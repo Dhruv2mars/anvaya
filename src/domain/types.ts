@@ -1,6 +1,6 @@
 export type DayKey = string; // YYYY-MM-DD — sunrise-based day key at observer longitude
 
-export type Metric = {
+export type Measure = {
   id: string;
   name: string;
   sortOrder: number;
@@ -11,7 +11,7 @@ export type Metric = {
 export type Rating = {
   id: string;
   dayKey: DayKey;
-  metricId: string;
+  measureId: string;
   value: number; // 1–5
   updatedAt: number;
 };
@@ -50,14 +50,6 @@ export type LocationFix = {
   longitude: number;
   altitude: number;
   source: "gps" | "cached" | "default";
-};
-
-export type AppSettings = {
-  onboardingComplete: boolean;
-  locationPermissionAsked: boolean;
-  defaultLatitude: number;
-  defaultLongitude: number;
-  timezone: string;
 };
 
 export const DEFAULT_LOCATION: LocationFix = {

@@ -68,7 +68,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="metrics"
+        name="measures"
         options={{
           title: "Measures",
           tabBarIcon: ({ focused }) => (

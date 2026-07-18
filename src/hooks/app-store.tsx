@@ -9,12 +9,27 @@ import React, {
 } from "react";
 import { AppState as RNAppState, type AppStateStatus } from "react-native";
 import type { LocationPermissionResponse } from "expo-location";
-import type { DayRecord, LocationFix, Metric, PanchangSnapshot, Rating } from "@/src/domain/types";
+import type { DayRecord, LocationFix, Measure, Rating } from "@/src/domain/types";
 import { DEFAULT_LOCATION } from "@/src/domain/types";
 import { resolveHinduDayKey, computePanchang } from "@/src/panchang/engine";
 import { INITIAL_LOCATION_PERMISSION, resolveLocation } from "@/src/lib/location";
-import * as repo from "@/src/db/repository";
+import * as daysDb from "@/src/db/days";
+import * as measuresDb from "@/src/db/measures";
+import * as ratingsDb from "@/src/db/ratings";
 import { getDb } from "@/src/db/client";
+import {
+  createDaySession,
+  type DaySession,
+  type DaySessionSnapshot,
+} from "@/src/session/day-session";
+import {
+  createActivityHistory,
+  type ActivityHistory,
+  type ActivityHistorySnapshot,
+} from "@/src/history/activity-history";
+import { measuresForDay } from "@/src/domain/measures-for-day";
+import { appSettings } from "@/src/settings/app-settings";
+import type { MeasureStats } from "@/src/history/quiet-patterns";
 
 type StoreState = {
   ready: boolean;
@@ -23,33 +38,64 @@ type StoreState = {
   locationPermission: LocationPermissionResponse;
   todayKey: string;
   selectedDayKey: string;
-  panchang: PanchangSnapshot | null;
+  observed: DaySessionSnapshot["observed"];
   day: DayRecord | null;
-  metrics: Metric[];
-  allMetrics: Metric[];
+  activeMeasures: Measure[];
+  allMeasures: Measure[];
+  /** Measures visible for the selected day (active ∪ archived-with-rating). */
+  measuresForDay: Measure[];
   ratings: Rating[];
   history: DayRecord[];
+  patterns: MeasureStats[];
   error: string | null;
 };
 
 type AppActions = {
   selectDay: (dayKey: string) => Promise<void>;
   goToday: () => Promise<void>;
-  setRating: (metricId: string, value: number) => Promise<void>;
-  clearRating: (metricId: string) => Promise<void>;
+  setRating: (measureId: string, value: number) => Promise<void>;
+  clearRating: (measureId: string) => Promise<void>;
   setNote: (note: string) => Promise<void>;
-  addMetric: (name: string) => Promise<void>;
-  renameMetric: (id: string, name: string) => Promise<void>;
-  archiveMetric: (id: string) => Promise<void>;
-  deleteArchivedMetric: (id: string) => Promise<void>;
-  restoreMetric: (id: string) => Promise<void>;
-  reorderMetrics: (ids: string[]) => Promise<void>;
-  completeOnboarding: (metricNames: string[]) => Promise<void>;
+  addMeasure: (name: string) => Promise<void>;
+  renameMeasure: (id: string, name: string) => Promise<void>;
+  archiveMeasure: (id: string) => Promise<void>;
+  deleteArchivedMeasure: (id: string) => Promise<void>;
+  restoreMeasure: (id: string) => Promise<void>;
+  reorderMeasures: (ids: string[]) => Promise<void>;
+  completeOnboarding: (measureNames: string[]) => Promise<void>;
   refreshLocation: (requestPermission?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
 const AppContext = createContext<(StoreState & AppActions) | null>(null);
+
+const daySessionDeps = {
+  computePanchang,
+  resolveHinduDayKey,
+  upsertDayPanchang: daysDb.upsertDayPanchang,
+  getRatingsForDay: ratingsDb.getRatingsForDay,
+  upsertRating: ratingsDb.upsertRating,
+  clearRating: ratingsDb.clearRating,
+  setDayNote: daysDb.setDayNote,
+};
+
+const activityHistoryDeps = {
+  listDaysWithActivity: daysDb.listDaysWithActivity,
+  getRecentRatings: ratingsDb.getRecentRatings,
+};
+
+function emptyDaySnapshot(location: LocationFix, todayKey: string): DaySessionSnapshot {
+  return {
+    selectedDayKey: "",
+    todayKey,
+    location,
+    observed: null,
+    day: null,
+    ratings: [],
+  };
+}
+
+const emptyActivity: ActivityHistorySnapshot = { days: [], patterns: [] };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -58,27 +104,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [locationPermission, setLocationPermission] =
     useState<LocationPermissionResponse>(INITIAL_LOCATION_PERMISSION);
   const [todayKey, setTodayKey] = useState("");
-  const [selectedDayKey, setSelectedDayKey] = useState("");
-  const [panchang, setPanchang] = useState<PanchangSnapshot | null>(null);
-  const [day, setDay] = useState<DayRecord | null>(null);
-  const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [allMetrics, setAllMetrics] = useState<Metric[]>([]);
-  const [ratings, setRatings] = useState<Rating[]>([]);
-  const [history, setHistory] = useState<DayRecord[]>([]);
+  const [daySnap, setDaySnap] = useState<DaySessionSnapshot>(() =>
+    emptyDaySnapshot(DEFAULT_LOCATION, "")
+  );
+  const [activeMeasures, setActiveMeasures] = useState<Measure[]>([]);
+  const [allMeasures, setAllMeasures] = useState<Measure[]>([]);
+  const [activitySnap, setActivitySnap] =
+    useState<ActivityHistorySnapshot>(emptyActivity);
   const [error, setError] = useState<string | null>(null);
-  const loadGeneration = useRef(0);
 
-  const loadDay = useCallback(async (dayKey: string, loc: LocationFix) => {
-    const gen = ++loadGeneration.current;
-    const snap = computePanchang(dayKey, loc);
-    const dayRow = await repo.upsertDayPanchang(snap);
-    const dayRatings = await repo.getRatingsForDay(dayKey);
-    if (gen !== loadGeneration.current) return;
-    setPanchang(snap);
-    setDay(dayRow);
-    setRatings(dayRatings);
-    setSelectedDayKey(dayKey);
+  const sessionRef = useRef<DaySession | null>(null);
+  const sessionUnsubRef = useRef<(() => void) | null>(null);
+  const activityRef = useRef<ActivityHistory>(
+    createActivityHistory(activityHistoryDeps)
+  );
+  const measuresRef = useRef<Measure[]>([]);
+  const todayKeyRef = useRef("");
+
+  const refreshActivity = useCallback(async () => {
+    const activity = activityRef.current;
+    await activity.refresh({
+      measures: measuresRef.current,
+      todayKey: todayKeyRef.current,
+    });
+    setActivitySnap(activity.getSnapshot());
   }, []);
+
+  const attachSession = useCallback(
+    (session: DaySession) => {
+      sessionUnsubRef.current?.();
+      sessionRef.current = session;
+      setDaySnap(session.getSnapshot());
+      const unsubState = session.subscribe(() => {
+        const snap = session.getSnapshot();
+        setDaySnap(snap);
+        setTodayKey(snap.todayKey);
+        todayKeyRef.current = snap.todayKey;
+        setLocation(snap.location);
+      });
+      const unsubActivity = session.onActivityChanged(() => {
+        void refreshActivity();
+      });
+      sessionUnsubRef.current = () => {
+        unsubState();
+        unsubActivity();
+      };
+    },
+    [refreshActivity]
+  );
 
   const bootstrap = useCallback(async () => {
     try {
@@ -88,7 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setTimeout(() => reject(new Error("Database open timed out")), 12000)
       );
       await Promise.race([getDb(), dbTimeout]);
-      const onboarded = (await repo.getSetting("onboarding_complete")) === "1";
+      const onboarded = await appSettings.isOnboarded();
       setOnboardingComplete(onboarded);
 
       const { location: loc, permission } = await resolveLocation({
@@ -97,173 +170,150 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLocation(loc);
       setLocationPermission(permission);
 
-      const now = new Date();
-      const hinduToday = resolveHinduDayKey(now, loc);
+      const hinduToday = resolveHinduDayKey(new Date(), loc);
       setTodayKey(hinduToday);
+      todayKeyRef.current = hinduToday;
 
-      const active = await repo.listActiveMetrics();
-      const all = await repo.listAllMetrics();
-      setMetrics(active);
-      setAllMetrics(all);
+      const active = await measuresDb.listActiveMeasures();
+      const all = await measuresDb.listAllMeasures();
+      setActiveMeasures(active);
+      setAllMeasures(all);
+      measuresRef.current = active;
 
-      await loadDay(hinduToday, loc);
-      const hist = await repo.listDaysWithActivity(120);
-      setHistory(hist);
+      const session = createDaySession(
+        { location: loc, todayKey: hinduToday },
+        daySessionDeps
+      );
+      attachSession(session);
+      await session.selectDay(hinduToday);
+      await refreshActivity();
       setReady(true);
     } catch (e) {
       console.error("Anvaya bootstrap failed", e);
       setError(e instanceof Error ? e.message : "Failed to start Anvaya");
       setReady(true);
     }
-  }, [loadDay]);
+  }, [attachSession, refreshActivity]);
 
   useEffect(() => {
     // One-shot local DB + location bootstrap for the session.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount bootstrap
     void bootstrap();
+    const activity = activityRef.current;
+    const unsubActivitySnap = activity.subscribe(() => {
+      setActivitySnap(activity.getSnapshot());
+    });
+    return () => {
+      sessionUnsubRef.current?.();
+      sessionUnsubRef.current = null;
+      sessionRef.current = null;
+      unsubActivitySnap();
+    };
   }, [bootstrap]);
 
-  // Recompute Hindu "today" when returning from background across sunrise.
+  // Shell clock: recompute Hindu "today" when returning from background across sunrise.
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {
       if (state !== "active" || !ready) return;
       const key = resolveHinduDayKey(new Date(), location);
       if (key !== todayKey) {
         setTodayKey(key);
-        if (selectedDayKey === todayKey) {
-          void loadDay(key, location);
-        }
+        todayKeyRef.current = key;
+        void sessionRef.current?.notifyTodayKey(key);
+        void refreshActivity();
       }
     };
     const sub = RNAppState.addEventListener("change", onChange);
     return () => sub.remove();
-  }, [ready, location, todayKey, selectedDayKey, loadDay]);
+  }, [ready, location, todayKey, refreshActivity]);
 
-  const selectDay = useCallback(
-    async (dayKey: string) => {
-      await loadDay(dayKey, location);
-    },
-    [loadDay, location]
-  );
-
-  const goToday = useCallback(async () => {
-    const key = resolveHinduDayKey(new Date(), location);
-    setTodayKey(key);
-    await loadDay(key, location);
-  }, [loadDay, location]);
-
-  const setRating = useCallback(
-    async (metricId: string, value: number) => {
-      const updated = await repo.upsertRating(selectedDayKey, metricId, value);
-      setRatings((prev) => {
-        const rest = prev.filter((r) => r.metricId !== metricId);
-        return [...rest, updated];
-      });
-      const hist = await repo.listDaysWithActivity(120);
-      setHistory(hist);
-    },
-    [selectedDayKey]
-  );
-
-  const clearRatingFn = useCallback(
-    async (metricId: string) => {
-      await repo.clearRating(selectedDayKey, metricId);
-      setRatings((prev) => prev.filter((r) => r.metricId !== metricId));
-      const hist = await repo.listDaysWithActivity(120);
-      setHistory(hist);
-    },
-    [selectedDayKey]
-  );
-
-  const setNote = useCallback(
-    async (note: string) => {
-      const trimmed = await repo.setDayNote(selectedDayKey, note);
-      setDay((prev) =>
-        prev
-          ? { ...prev, note: trimmed, noteUpdatedAt: Date.now() }
-          : {
-              dayKey: selectedDayKey,
-              note: trimmed,
-              noteUpdatedAt: Date.now(),
-              tithi: panchang?.tithi ?? null,
-              vaar: panchang?.vaar ?? null,
-              paksha: panchang?.paksha ?? null,
-              nakshatra: panchang?.nakshatra ?? null,
-              masa: panchang?.masa ?? null,
-              sunriseIso: panchang?.sunrise.toISOString() ?? null,
-              latitude: location.latitude,
-              longitude: location.longitude,
-              updatedAt: Date.now(),
-            }
-      );
-      const hist = await repo.listDaysWithActivity(120);
-      setHistory(hist);
-    },
-    [selectedDayKey, panchang, location]
-  );
-
-  const refreshMetrics = useCallback(async () => {
-    setMetrics(await repo.listActiveMetrics());
-    setAllMetrics(await repo.listAllMetrics());
+  const selectDay = useCallback(async (dayKey: string) => {
+    await sessionRef.current?.selectDay(dayKey);
   }, []);
 
-  const addMetric = useCallback(
+  const goToday = useCallback(async () => {
+    await sessionRef.current?.goToday();
+  }, []);
+
+  const setRating = useCallback(async (measureId: string, value: number) => {
+    await sessionRef.current?.setRating(measureId, value);
+  }, []);
+
+  const clearRatingFn = useCallback(async (measureId: string) => {
+    await sessionRef.current?.clearRating(measureId);
+  }, []);
+
+  const setNote = useCallback(async (note: string) => {
+    await sessionRef.current?.setNote(note);
+  }, []);
+
+  const refreshMeasures = useCallback(async () => {
+    const active = await measuresDb.listActiveMeasures();
+    const all = await measuresDb.listAllMeasures();
+    setActiveMeasures(active);
+    setAllMeasures(all);
+    measuresRef.current = active;
+    await refreshActivity();
+  }, [refreshActivity]);
+
+  const addMeasure = useCallback(
     async (name: string) => {
-      await repo.createMetric(name);
-      await refreshMetrics();
+      await measuresDb.createMeasure(name);
+      await refreshMeasures();
     },
-    [refreshMetrics]
+    [refreshMeasures]
   );
 
-  const renameMetricFn = useCallback(
+  const renameMeasureFn = useCallback(
     async (id: string, name: string) => {
-      await repo.renameMetric(id, name);
-      await refreshMetrics();
+      await measuresDb.renameMeasure(id, name);
+      await refreshMeasures();
     },
-    [refreshMetrics]
+    [refreshMeasures]
   );
 
-  const archiveMetricFn = useCallback(
+  const archiveMeasureFn = useCallback(
     async (id: string) => {
-      await repo.archiveMetric(id);
-      await refreshMetrics();
+      await measuresDb.archiveMeasure(id);
+      await refreshMeasures();
     },
-    [refreshMetrics]
+    [refreshMeasures]
   );
 
-  const deleteArchivedMetricFn = useCallback(
+  const deleteArchivedMeasureFn = useCallback(
     async (id: string) => {
-      await repo.deleteArchivedMetric(id);
-      setRatings((prev) => prev.filter((rating) => rating.metricId !== id));
-      const [, hist] = await Promise.all([
-        refreshMetrics(),
-        repo.listDaysWithActivity(120),
-      ]);
-      setHistory(hist);
+      await measuresDb.deleteArchivedMeasure(id);
+      sessionRef.current?.discardMeasureRatings(id);
+      await refreshMeasures();
     },
-    [refreshMetrics]
+    [refreshMeasures]
   );
 
-  const restoreMetricFn = useCallback(
+  const restoreMeasureFn = useCallback(
     async (id: string) => {
-      await repo.restoreMetric(id);
-      await refreshMetrics();
+      await measuresDb.restoreMeasure(id);
+      await refreshMeasures();
     },
-    [refreshMetrics]
+    [refreshMeasures]
   );
 
-  const reorderMetricsFn = useCallback(
+  const reorderMeasuresFn = useCallback(
     async (ids: string[]) => {
-      await repo.reorderMetrics(ids);
-      await refreshMetrics();
+      await measuresDb.reorderMeasures(ids);
+      await refreshMeasures();
     },
-    [refreshMetrics]
+    [refreshMeasures]
   );
 
   const completeOnboarding = useCallback(
-    async (metricNames: string[]) => {
-      await repo.completeOnboardingSetup(metricNames);
-      await refreshMetrics();
+    async (measureNames: string[]) => {
+      await measuresDb.completeOnboardingSetup(measureNames);
+      const active = await measuresDb.listActiveMeasures();
+      const all = await measuresDb.listAllMeasures();
+      setActiveMeasures(active);
+      setAllMeasures(all);
+      measuresRef.current = active;
+
       const { location: loc, permission } = await resolveLocation({
         requestPermission: true,
         forceCurrent: true,
@@ -272,10 +322,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLocationPermission(permission);
       const key = resolveHinduDayKey(new Date(), loc);
       setTodayKey(key);
+      todayKeyRef.current = key;
+      // Load the first day before flipping onboarding — otherwise Today mounts
+      // with selectedDayKey "" and formatDayHeading throws Invalid time value.
+      const session = createDaySession({ location: loc, todayKey: key }, daySessionDeps);
+      attachSession(session);
+      await session.selectDay(key);
+      await refreshActivity();
       setOnboardingComplete(true);
-      await loadDay(key, loc);
     },
-    [loadDay, refreshMetrics]
+    [attachSession, refreshActivity]
   );
 
   const refreshLocation = useCallback(
@@ -284,16 +340,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         requestPermission,
         forceCurrent: true,
       });
-      const wasViewingToday = !selectedDayKey || selectedDayKey === todayKey;
-      setLocation(loc);
       setLocationPermission(permission);
-      const key = resolveHinduDayKey(new Date(), loc);
-      setTodayKey(key);
-      if (wasViewingToday) {
-        await loadDay(key, loc);
-      }
+      await sessionRef.current?.notifyLocation(loc);
     },
-    [loadDay, selectedDayKey, todayKey]
+    []
   );
 
   const refresh = useCallback(async () => {
@@ -306,26 +356,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onboardingComplete,
       location,
       locationPermission,
-      todayKey,
-      selectedDayKey,
-      panchang,
-      day,
-      metrics,
-      allMetrics,
-      ratings,
-      history,
+      todayKey: daySnap.todayKey || todayKey,
+      selectedDayKey: daySnap.selectedDayKey,
+      observed: daySnap.observed,
+      day: daySnap.day,
+      activeMeasures,
+      allMeasures,
+      measuresForDay: measuresForDay(allMeasures, daySnap.ratings),
+      ratings: daySnap.ratings,
+      history: activitySnap.days,
+      patterns: activitySnap.patterns,
       error,
       selectDay,
       goToday,
       setRating,
       clearRating: clearRatingFn,
       setNote,
-      addMetric,
-      renameMetric: renameMetricFn,
-      archiveMetric: archiveMetricFn,
-      deleteArchivedMetric: deleteArchivedMetricFn,
-      restoreMetric: restoreMetricFn,
-      reorderMetrics: reorderMetricsFn,
+      addMeasure,
+      renameMeasure: renameMeasureFn,
+      archiveMeasure: archiveMeasureFn,
+      deleteArchivedMeasure: deleteArchivedMeasureFn,
+      restoreMeasure: restoreMeasureFn,
+      reorderMeasures: reorderMeasuresFn,
       completeOnboarding,
       refreshLocation,
       refresh,
@@ -336,25 +388,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       location,
       locationPermission,
       todayKey,
-      selectedDayKey,
-      panchang,
-      day,
-      metrics,
-      allMetrics,
-      ratings,
-      history,
+      daySnap,
+      activeMeasures,
+      allMeasures,
+      activitySnap,
       error,
       selectDay,
       goToday,
       setRating,
       clearRatingFn,
       setNote,
-      addMetric,
-      renameMetricFn,
-      archiveMetricFn,
-      deleteArchivedMetricFn,
-      restoreMetricFn,
-      reorderMetricsFn,
+      addMeasure,
+      renameMeasureFn,
+      archiveMeasureFn,
+      deleteArchivedMeasureFn,
+      restoreMeasureFn,
+      reorderMeasuresFn,
       completeOnboarding,
       refreshLocation,
       refresh,

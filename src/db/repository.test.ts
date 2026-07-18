@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb, resetDbSingleton } from "./client";
 import {
   completeOnboardingSetup,
-  deleteArchivedMetric,
-  setDayNote,
-  upsertRating,
-} from "./repository";
+  deleteArchivedMeasure,
+} from "./measures";
+import { setDayNote } from "./days";
+import { upsertRating } from "./ratings";
 
 const sqlite = vi.hoisted(() => ({
   openDatabaseAsync: vi.fn(),
@@ -96,7 +96,7 @@ describe("upsertRating", () => {
     expect(result).toEqual({
       id: "existing-id",
       dayKey: "2026-07-12",
-      metricId: "energy",
+      measureId: "energy",
       value: 4,
       updatedAt: expect.any(Number),
     });
@@ -208,11 +208,11 @@ describe("completeOnboardingSetup", () => {
   });
 });
 
-describe("deleteArchivedMetric", () => {
-  it("deletes an archived metric and all of its ratings in one transaction", async () => {
+describe("deleteArchivedMeasure", () => {
+  it("deletes an archived measure and all of its ratings in one transaction", async () => {
     database.getFirstAsync.mockResolvedValueOnce({ archived_at: 1234 });
 
-    await deleteArchivedMetric("energy");
+    await deleteArchivedMeasure("energy");
 
     expect(database.withTransactionAsync).toHaveBeenCalledTimes(1);
     expect(database.runAsync).toHaveBeenNthCalledWith(
@@ -227,19 +227,19 @@ describe("deleteArchivedMetric", () => {
     );
   });
 
-  it("refuses to delete an active metric or its ratings", async () => {
+  it("refuses to delete an active measure or its ratings", async () => {
     database.getFirstAsync.mockResolvedValueOnce({ archived_at: null });
 
-    await expect(deleteArchivedMetric("energy")).rejects.toThrow(
-      "Archive a metric before deleting it"
+    await expect(deleteArchivedMeasure("energy")).rejects.toThrow(
+      "Archive a measure before deleting it"
     );
     expect(database.runAsync).not.toHaveBeenCalled();
   });
 
-  it("refuses to delete a missing metric", async () => {
+  it("refuses to delete a missing measure", async () => {
     database.getFirstAsync.mockResolvedValueOnce(null);
 
-    await expect(deleteArchivedMetric("missing")).rejects.toThrow("Metric not found");
+    await expect(deleteArchivedMeasure("missing")).rejects.toThrow("Measure not found");
     expect(database.runAsync).not.toHaveBeenCalled();
   });
 });

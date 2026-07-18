@@ -15,8 +15,8 @@ import { useApp } from "@/src/hooks/app-store";
 import { colors, radius, space, type } from "@/src/theme/tokens";
 
 const SUGGESTIONS = ["Energy", "Focus", "Calm", "Sleep", "Mood"];
-const MIN_METRICS = 2;
-const MAX_METRICS = 5;
+const MIN_MEASURES = 2;
+const MAX_MEASURES = 5;
 
 export default function OnboardingScreen() {
   const { completeOnboarding } = useApp();
@@ -26,7 +26,7 @@ export default function OnboardingScreen() {
   const [busy, setBusy] = useState(false);
   const finishing = useRef(false);
   const namesRef = useRef(names);
-  const hasMinimumMetrics = names.length >= MIN_METRICS;
+  const hasMinimumMeasures = names.length >= MIN_MEASURES;
   const normalizedNames = useMemo(
     () => new Set(names.map((name) => name.toLowerCase())),
     [names]
@@ -44,8 +44,8 @@ export default function OnboardingScreen() {
       setError("That measure is already added.");
       return;
     }
-    if (current.length >= MAX_METRICS) {
-      setError(`Choose up to ${MAX_METRICS} measures.`);
+    if (current.length >= MAX_MEASURES) {
+      setError(`Choose up to ${MAX_MEASURES} measures.`);
       return;
     }
 
@@ -65,8 +65,8 @@ export default function OnboardingScreen() {
 
   const finish = useCallback(async () => {
     if (finishing.current) return;
-    if (!hasMinimumMetrics) {
-      setError(`Choose at least ${MIN_METRICS} measures.`);
+    if (!hasMinimumMeasures) {
+      setError(`Choose at least ${MIN_MEASURES} measures.`);
       return;
     }
     finishing.current = true;
@@ -80,7 +80,7 @@ export default function OnboardingScreen() {
       finishing.current = false;
       setBusy(false);
     }
-  }, [completeOnboarding, hasMinimumMetrics, names]);
+  }, [completeOnboarding, hasMinimumMeasures, names]);
 
   return (
     <Screen>
@@ -98,7 +98,7 @@ export default function OnboardingScreen() {
       <FadeIn delay={100}>
         <Text style={styles.section}>Your measures</Text>
         <Text style={styles.hint}>
-          Choose {MIN_METRICS}–{MAX_METRICS} things to rate daily. Rename or archive
+          Choose {MIN_MEASURES}–{MAX_MEASURES} things to rate daily. Rename or archive
           later; history stays.
         </Text>
 
@@ -180,7 +180,7 @@ export default function OnboardingScreen() {
           label="Begin"
           onPress={() => void finish()}
           busy={busy}
-          disabled={!hasMinimumMetrics}
+          disabled={!hasMinimumMeasures}
           style={styles.cta}
         />
       </FadeIn>

@@ -1,8 +1,7 @@
 import * as Location from "expo-location";
 import { DEFAULT_LOCATION, type LocationFix } from "@/src/domain/types";
-import { getSetting, setSetting } from "@/src/db/repository";
+import { appSettings } from "@/src/settings/app-settings";
 
-const CACHE_KEY = "location_cache";
 export const INITIAL_LOCATION_PERMISSION: Location.LocationPermissionResponse = {
   status: Location.PermissionStatus.UNDETERMINED,
   granted: false,
@@ -21,24 +20,11 @@ function requestForegroundPermission(): Promise<Location.LocationPermissionRespo
 }
 
 export async function loadCachedLocation(): Promise<LocationFix | null> {
-  const raw = await getSetting(CACHE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as LocationFix;
-    if (
-      typeof parsed.latitude === "number" &&
-      typeof parsed.longitude === "number"
-    ) {
-      return { ...parsed, source: "cached" };
-    }
-  } catch {
-    return null;
-  }
-  return null;
+  return appSettings.getLocationCache();
 }
 
 async function cacheLocation(fix: LocationFix): Promise<void> {
-  await setSetting(CACHE_KEY, JSON.stringify(fix));
+  await appSettings.setLocationCache(fix);
 }
 
 function toLocationFix(

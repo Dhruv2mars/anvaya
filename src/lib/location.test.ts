@@ -20,7 +20,16 @@ const repository = vi.hoisted(() => ({
 }));
 
 vi.mock("expo-location", () => location);
-vi.mock("@/src/db/repository", () => repository);
+vi.mock("@/src/db/settings-kv", () => repository);
+vi.mock("@/src/settings/app-settings", async () => {
+  const { createSettingsStore } = await import("@/src/settings/settings");
+  return {
+    appSettings: createSettingsStore({
+      get: (key: string) => repository.getSetting(key),
+      set: (key: string, value: string) => repository.setSetting(key, value),
+    }),
+  };
+});
 
 const permission = (status: string, canAskAgain: boolean) => ({
   status,

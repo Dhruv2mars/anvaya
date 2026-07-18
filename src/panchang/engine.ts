@@ -120,8 +120,3 @@ export function computePanchang(dayKey: string, location: LocationFix): Panchang
     longitude: location.longitude,
   };
 }
-
-/** @deprecated Prefer formatCyclePhase from domain/display for UI. */
-export function formatPaksha(paksha: "Shukla" | "Krishna"): string {
-  return paksha === "Shukla" ? "Waxing" : "Waning";
-}

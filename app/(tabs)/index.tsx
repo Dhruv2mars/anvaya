@@ -1,7 +1,6 @@
-import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { DayNav } from "@/src/components/day/day-nav";
-import { MetricRatings } from "@/src/components/day/metric-ratings";
+import { MeasureRatings } from "@/src/components/day/measure-ratings";
 import { NoteField } from "@/src/components/day/note-field";
 import { DayMarks } from "@/src/components/day/day-marks";
 import { BrandHeader } from "@/src/components/ui/brand-header";
@@ -15,10 +14,9 @@ export default function TodayScreen() {
   const {
     todayKey,
     selectedDayKey,
-    panchang,
+    observed,
     day,
-    metrics,
-    allMetrics,
+    measuresForDay: visibleMeasures,
     ratings,
     location,
     selectDay,
@@ -35,18 +33,6 @@ export default function TodayScreen() {
       : location.source === "cached"
         ? "Last known location"
         : "Default (Delhi) — enable location for accuracy";
-
-  // Active metrics plus any archived metrics that already have a rating on this day,
-  // so history edit never hides preserved scores.
-  const visibleMetrics = useMemo(() => {
-    const ratedIds = new Set(ratings.map((r) => r.metricId));
-    const archivedWithRating = allMetrics.filter(
-      (m) => m.archivedAt != null && ratedIds.has(m.id)
-    );
-    const byId = new Map<string, (typeof metrics)[number]>();
-    for (const m of [...metrics, ...archivedWithRating]) byId.set(m.id, m);
-    return [...byId.values()].sort((a, b) => a.sortOrder - b.sortOrder);
-  }, [metrics, allMetrics, ratings]);
 
   return (
     <Screen>
@@ -68,8 +54,8 @@ export default function TodayScreen() {
       </FadeIn>
 
       <FadeIn delay={80}>
-        {panchang ? (
-          <DayMarks panchang={panchang} locationLabel={locationLabel} />
+        {observed ? (
+          <DayMarks observed={observed} locationLabel={locationLabel} />
         ) : (
           <Text style={styles.loading}>Computing day marks…</Text>
         )}
@@ -78,8 +64,8 @@ export default function TodayScreen() {
       <FadeIn delay={120}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ratings</Text>
-          <MetricRatings
-            metrics={visibleMetrics}
+          <MeasureRatings
+            measures={visibleMeasures}
             ratings={ratings}
             onRate={(id, v) => void setRating(id, v)}
             onClear={(id) => void clearRating(id)}
