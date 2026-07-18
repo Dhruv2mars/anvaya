@@ -218,20 +218,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [bootstrap]);
 
   // Shell clock: recompute Hindu "today" when returning from background across sunrise.
+  // Read location/todayKey from DaySession (not React effect deps) so a concurrent
+  // notifyLocation can't be overwritten by a stale AppState closure.
   useEffect(() => {
     const onChange = (state: AppStateStatus) => {
       if (state !== "active" || !ready) return;
-      const key = resolveHinduDayKey(new Date(), location);
-      if (key !== todayKey) {
+      const session = sessionRef.current;
+      if (!session) return;
+      const snap = session.getSnapshot();
+      const key = resolveHinduDayKey(new Date(), snap.location);
+      if (key !== snap.todayKey) {
         setTodayKey(key);
         todayKeyRef.current = key;
-        void sessionRef.current?.notifyTodayKey(key);
+        void session.notifyTodayKey(key);
         void refreshActivity();
       }
     };
     const sub = RNAppState.addEventListener("change", onChange);
     return () => sub.remove();
-  }, [ready, location, todayKey, refreshActivity]);
+  }, [ready, refreshActivity]);
 
   const selectDay = useCallback(async (dayKey: string) => {
     await sessionRef.current?.selectDay(dayKey);
