@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 import { colors, space, type } from "@/src/theme/tokens";
 
 type Props = {
@@ -8,12 +8,22 @@ type Props = {
   hero?: boolean;
 };
 
+const brandIcon = require("../../../assets/images/icon.png");
+
 export function BrandHeader({ tagline, hero = false }: Props) {
   return (
     <View style={styles.wrap}>
-      <Text style={hero ? styles.heroBrand : styles.brand} accessibilityRole="header">
-        Anvaya
-      </Text>
+      <View style={styles.brandRow}>
+        <Image
+          source={brandIcon}
+          style={hero ? styles.heroMark : styles.mark}
+          resizeMode="contain"
+          accessible={false}
+        />
+        <Text style={hero ? styles.heroBrand : styles.brand} accessibilityRole="header">
+          Anvaya
+        </Text>
+      </View>
       {tagline ? <Text style={styles.tagline}>{tagline}</Text> : null}
     </View>
   );
@@ -22,6 +32,21 @@ export function BrandHeader({ tagline, hero = false }: Props) {
 const styles = StyleSheet.create({
   wrap: {
     gap: space.xs,
+  },
+  brandRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: space.sm,
+  },
+  mark: {
+    borderRadius: 8,
+    height: 32,
+    width: 32,
+  },
+  heroMark: {
+    borderRadius: 14,
+    height: 56,
+    width: 56,
   },
   brand: {
     ...type.brand,
