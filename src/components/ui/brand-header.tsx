@@ -18,7 +18,7 @@ export function BrandHeader({ tagline, hero = false }: Props) {
           source={brandIcon}
           style={hero ? styles.heroMark : styles.mark}
           resizeMode="contain"
-          accessibilityLabel="Anvaya logo"
+          accessible={false}
         />
         <Text style={hero ? styles.heroBrand : styles.brand} accessibilityRole="header">
           Anvaya
