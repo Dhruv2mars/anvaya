@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid/non-secure";
-import { getDb, runDbWrite } from "@/src/db/client";
+import { getDb, runDbWrite, withDbTransaction } from "@/src/db/client";
 import { mapRating, type RatingRow } from "@/src/db/rows";
 import type { Rating } from "@/src/domain/types";
 
@@ -32,7 +32,7 @@ export function upsertRating(
       updatedAt: now,
     };
 
-    await db.withExclusiveTransactionAsync(async (txn) => {
+    await withDbTransaction(db, async (txn) => {
       // History joins ratings through days, so both rows must commit or roll back together.
       await txn.runAsync(
         `INSERT INTO days (day_key, note, updated_at) VALUES (?, '', ?)

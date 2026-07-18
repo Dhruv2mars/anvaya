@@ -1,5 +1,5 @@
 import { nanoid } from "nanoid/non-secure";
-import { getDb, runDbWrite } from "@/src/db/client";
+import { getDb, runDbWrite, withDbTransaction } from "@/src/db/client";
 import { mapMeasure, type MeasureRow } from "@/src/db/rows";
 import type { Measure } from "@/src/domain/types";
 import {
@@ -28,7 +28,7 @@ export async function listAllMeasures(): Promise<Measure[]> {
 export function completeOnboardingSetup(measureNames: string[]): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (txn) => {
+    await withDbTransaction(db, async (txn) => {
       const completed = await txn.getFirstAsync<{ value: string }>(
         `SELECT value FROM settings WHERE key = ?`,
         settingsKeys.onboardingComplete
@@ -103,7 +103,7 @@ export function archiveMeasure(id: string): Promise<void> {
 export function deleteArchivedMeasure(id: string): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (txn) => {
+    await withDbTransaction(db, async (txn) => {
       const measure = await txn.getFirstAsync<{ archived_at: number | null }>(
         `SELECT archived_at FROM metrics WHERE id = ?`,
         id
@@ -137,7 +137,7 @@ export function restoreMeasure(id: string): Promise<void> {
 export function reorderMeasures(orderedIds: string[]): Promise<void> {
   return runDbWrite(async () => {
     const db = await getDb();
-    await db.withExclusiveTransactionAsync(async (txn) => {
+    await withDbTransaction(db, async (txn) => {
       for (let i = 0; i < orderedIds.length; i++) {
         const id = orderedIds[i];
         if (!id) continue;
