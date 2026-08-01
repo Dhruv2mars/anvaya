@@ -6,7 +6,7 @@ import { DayMarks } from "@/src/components/day/day-marks";
 import { BrandHeader } from "@/src/components/ui/brand-header";
 import { FadeIn } from "@/src/components/ui/fade-in";
 import { Screen } from "@/src/components/ui/screen";
-import { formatDayHeading, shiftDayKey } from "@/src/domain/day-key";
+import { formatDayHeading, formatFullDate, shiftDayKey } from "@/src/domain/day-key";
 import { useApp } from "@/src/hooks/app-store";
 import { colors, space, type } from "@/src/theme/tokens";
 
@@ -27,6 +27,7 @@ export default function TodayScreen() {
   } = useApp();
 
   const title = formatDayHeading(selectedDayKey, todayKey);
+  const dateLabel = formatFullDate(selectedDayKey);
   const locationLabel =
     location.source === "gps"
       ? "Your location"
@@ -36,13 +37,16 @@ export default function TodayScreen() {
 
   return (
     <Screen>
-      <BrandHeader tagline="Your days, your rhythm" />
+      <FadeIn delay={0}>
+        <BrandHeader />
+      </FadeIn>
 
-      <FadeIn delay={40}>
+      <FadeIn delay={50}>
         <DayNav
           dayKey={selectedDayKey}
           todayKey={todayKey}
           title={title}
+          dateLabel={dateLabel}
           onPrev={() => void selectDay(shiftDayKey(selectedDayKey, -1))}
           onNext={() => {
             if (selectedDayKey < todayKey) {
@@ -53,17 +57,17 @@ export default function TodayScreen() {
         />
       </FadeIn>
 
-      <FadeIn delay={80}>
+      <FadeIn delay={110}>
         {observed ? (
           <DayMarks observed={observed} locationLabel={locationLabel} />
         ) : (
-          <Text style={styles.loading}>Computing day marks…</Text>
+          <Text style={styles.loading}>Reading the sky…</Text>
         )}
       </FadeIn>
 
-      <FadeIn delay={120}>
+      <FadeIn delay={170}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ratings</Text>
+          <Text style={styles.sectionEyebrow}>Rate the day</Text>
           <MeasureRatings
             measures={visibleMeasures}
             ratings={ratings}
@@ -73,15 +77,13 @@ export default function TodayScreen() {
         </View>
       </FadeIn>
 
-      <FadeIn delay={160}>
-        <View style={styles.section}>
-          <NoteField
-            key={selectedDayKey}
-            dayKey={selectedDayKey}
-            value={day?.note ?? ""}
-            onCommit={(n) => void setNote(n)}
-          />
-        </View>
+      <FadeIn delay={230}>
+        <NoteField
+          key={selectedDayKey}
+          dayKey={selectedDayKey}
+          value={day?.note ?? ""}
+          onCommit={(n) => void setNote(n)}
+        />
       </FadeIn>
     </Screen>
   );
@@ -95,10 +97,9 @@ const styles = StyleSheet.create({
   },
   section: {
     gap: space.md,
-    paddingTop: space.sm,
   },
-  sectionTitle: {
-    ...type.label,
+  sectionEyebrow: {
+    ...type.eyebrow,
     color: colors.inkSecondary,
   },
 });

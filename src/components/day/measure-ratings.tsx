@@ -27,30 +27,57 @@ export function MeasureRatings({ measures, ratings, onRate, onClear }: Props) {
 
   return (
     <View style={styles.list}>
-      {measures.map((measure) => (
-        <View key={measure.id} style={styles.item}>
-          <Text style={styles.name}>{measure.name}</Text>
-          <RatingRow
-            value={byMeasure.get(measure.id) ?? null}
-            onChange={(v) => onRate(measure.id, v)}
-            onClear={() => onClear(measure.id)}
-          />
-        </View>
-      ))}
+      {measures.map((measure) => {
+        const value = byMeasure.get(measure.id) ?? null;
+        return (
+          <View key={measure.id} style={styles.item}>
+            <View style={styles.headRow}>
+              <Text style={styles.name}>{measure.name}</Text>
+              <Text
+                style={[styles.value, value == null && styles.valueIdle]}
+                accessibilityElementsHidden
+              >
+                {value != null ? `${value} / 5` : "—"}
+              </Text>
+            </View>
+            <RatingRow
+              value={value}
+              onChange={(v) => onRate(measure.id, v)}
+              onClear={() => onClear(measure.id)}
+            />
+          </View>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   list: {
-    gap: space.xl,
+    gap: space.lg,
   },
   item: {
+    gap: space.sm,
+  },
+  headRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
     gap: space.md,
   },
   name: {
     ...type.headline,
     color: colors.ink,
+  },
+  value: {
+    ...type.caption,
+    color: colors.accent,
+    fontVariant: ["tabular-nums"],
+    fontFamily: "Manrope_700Bold",
+  },
+  valueIdle: {
+    color: colors.inkTertiary,
+    fontFamily: "Manrope_500Medium",
   },
   empty: {
     gap: space.sm,

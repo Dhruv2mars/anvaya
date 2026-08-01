@@ -54,6 +54,12 @@ export function formatShortDate(dayKey: string): string {
   return format(parseDayKey(dayKey), "d MMM");
 }
 
+/** Full eyebrow-style date, e.g. "MONDAY 3 FEBRUARY 2026" (uppercase via caller). */
+export function formatFullDate(dayKey: string): string {
+  if (!isDayKey(dayKey)) return "…";
+  return format(parseDayKey(dayKey), "EEEE d MMMM yyyy");
+}
+
 /** Format a clock time at the observer longitude (mean solar time, not device TZ). */
 export function formatTimeAtLongitude(date: Date, longitude: number): string {
   // Fractional hour offset from longitude — matches astronomy wall-clock at the
