@@ -1,11 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { BrandHeader } from "@/src/components/ui/brand-header";
 import { Button } from "@/src/components/ui/button";
 import { FadeIn } from "@/src/components/ui/fade-in";
@@ -84,18 +79,16 @@ export default function OnboardingScreen() {
 
   return (
     <Screen>
-      <FadeIn>
+      {/* Static hero — first paint must be instant, no entrance choreography. */}
+      <View style={styles.hero}>
         <BrandHeader hero tagline="Notice your days beside the calendar." />
-      </FadeIn>
-
-      <FadeIn delay={60}>
         <Text style={styles.lead}>
           Rate a few personal measures each day next to today’s lunar and solar
           marks. Local, fast, no account.
         </Text>
-      </FadeIn>
+      </View>
 
-      <FadeIn delay={100}>
+      <FadeIn delay={120}>
         <Text style={styles.section}>Your measures</Text>
         <Text style={styles.hint}>
           Choose {MIN_MEASURES}–{MAX_MEASURES} things to rate daily. Rename or archive
@@ -111,13 +104,15 @@ export default function OnboardingScreen() {
               style={[styles.chip, busy && styles.controlDisabled]}
               accessibilityRole="button"
               accessibilityLabel={`Remove ${name}`}
+              pressScale={0.92}
             >
-              <Text style={styles.chipText}>{name} ×</Text>
+              <Text style={styles.chipText}>{name}</Text>
+              <Ionicons name="close" size={14} color={colors.accent} />
             </PressableScale>
           ))}
         </View>
 
-        <View style={styles.addRow}>
+        <View style={styles.addCard}>
           <TextInput
             value={draft}
             editable={!busy}
@@ -132,20 +127,17 @@ export default function OnboardingScreen() {
             onSubmitEditing={() => addName(draft)}
             returnKeyType="done"
           />
-          <Pressable
+          <PressableScale
             disabled={busy}
             onPress={() => addName(draft)}
-            style={({ pressed }) => [
-              styles.addBtn,
-              busy && styles.controlDisabled,
-              pressed && !busy && styles.pressed,
-            ]}
+            style={[styles.addBtn, busy && styles.controlDisabled]}
             accessibilityRole="button"
             accessibilityState={{ disabled: busy }}
             accessibilityLabel="Add measure"
+            pressScale={0.9}
           >
-            <Text style={styles.addBtnText}>Add</Text>
-          </Pressable>
+            <Ionicons name="add" size={24} color={colors.accentOn} />
+          </PressableScale>
         </View>
 
         {error ? (
@@ -163,17 +155,20 @@ export default function OnboardingScreen() {
               style={[styles.suggest, busy && styles.controlDisabled]}
               accessibilityRole="button"
               accessibilityLabel={`Add ${s}`}
+              pressScale={0.94}
             >
-              <Text style={styles.suggestText}>+ {s}</Text>
+              <Ionicons name="add" size={14} color={colors.inkSecondary} />
+              <Text style={styles.suggestText}>{s}</Text>
             </PressableScale>
           ))}
         </View>
       </FadeIn>
 
-      <FadeIn delay={140}>
+      <FadeIn delay={200}>
         <Text style={styles.section}>Location</Text>
         <Text style={styles.hint}>
-          Used for accurate sunrise and day marks. Deny to use Delhi as a fallback.
+          Used for accurate sunrise and day marks at your place. If you skip
+          permission, Delhi serves as a fallback.
         </Text>
 
         <Button
@@ -189,21 +184,22 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    gap: space.lg,
+    paddingTop: space.lg,
+  },
   lead: {
     ...type.body,
     color: colors.inkSecondary,
-    marginBottom: space.sm,
   },
   section: {
-    ...type.headline,
-    color: colors.ink,
-    marginTop: space.md,
-    marginBottom: space.sm,
+    ...type.eyebrow,
+    color: colors.inkSecondary,
+    marginTop: space.sm,
   },
   hint: {
     ...type.body,
     color: colors.inkSecondary,
-    marginBottom: space.md,
   },
   error: {
     ...type.caption,
@@ -214,72 +210,74 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: space.sm,
-    marginBottom: space.md,
   },
   chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
     backgroundColor: colors.accentSoft,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
+    minHeight: 44,
   },
   chipText: {
     ...type.bodyMedium,
     color: colors.ink,
   },
-  addRow: {
+  addCard: {
     flexDirection: "row",
+    alignItems: "center",
     gap: space.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingLeft: space.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    marginTop: space.sm,
   },
   input: {
     flex: 1,
     ...type.body,
     color: colors.ink,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    minHeight: 48,
+    paddingVertical: space.sm,
+    minHeight: 44,
   },
   addBtn: {
-    backgroundColor: colors.ink,
-    borderRadius: radius.md,
-    paddingHorizontal: space.lg,
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    alignItems: "center",
     justifyContent: "center",
-    minHeight: 48,
-  },
-  addBtnText: {
-    ...type.bodyMedium,
-    color: colors.surface,
   },
   suggestions: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: space.sm,
-    marginTop: space.md,
+    marginTop: space.sm,
   },
   suggest: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
     paddingHorizontal: space.md,
     paddingVertical: space.sm,
-    borderRadius: radius.sm,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    minHeight: 44,
   },
   suggestText: {
     ...type.caption,
     color: colors.inkSecondary,
   },
   cta: {
-    marginTop: space.xl,
+    marginTop: space.md,
     alignSelf: "stretch",
   },
   controlDisabled: {
     opacity: 0.55,
-  },
-  pressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.98 }],
   },
 });
