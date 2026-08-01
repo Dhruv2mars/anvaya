@@ -2,22 +2,29 @@ import { StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { colors } from "@/src/theme/tokens";
 
-/** Soft cool mist wash — atmospheric depth without flat fill. */
+/**
+ * Morning mist field — cool vertical wash, faint warm sunrise bloom in the
+ * top-right corner. The product's one warm mark lives here, behind content.
+ */
 export function Atmosphere() {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <LinearGradient
-        colors={[colors.bg, colors.bgDeep, colors.bg]}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0.15, y: 0 }}
+        colors={[colors.bg, colors.bg, colors.bgDeep]}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0.2, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
       <LinearGradient
-        colors={["rgba(196, 59, 46, 0.07)", "transparent", "rgba(220, 228, 235, 0.55)"]}
-        locations={[0, 0.35, 1]}
-        start={{ x: 0.8, y: 0 }}
-        end={{ x: 0.2, y: 0.7 }}
+        colors={[
+          "rgba(196, 59, 46, 0.10)",
+          "rgba(217, 106, 62, 0.05)",
+          "rgba(217, 106, 62, 0)",
+        ]}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0.85, y: 0 }}
+        end={{ x: 0.15, y: 0.85 }}
         style={styles.warmBloom}
       />
     </View>
@@ -29,7 +36,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     right: 0,
-    width: "70%",
-    height: "42%",
+    width: "88%",
+    height: "52%",
   },
 });
