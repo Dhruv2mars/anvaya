@@ -1,5 +1,5 @@
 import { Image, StyleSheet, Text, View } from "react-native";
-import { colors, space, type } from "@/src/theme/tokens";
+import { colors, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
   /** Optional supporting line under the brand */
@@ -39,12 +39,15 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   mark: {
-    borderRadius: 8,
-    height: 32,
-    width: 32,
+    borderRadius: radius.sm,
+    borderCurve: "continuous",
+    height: 30,
+    width: 30,
+    boxShadow: "0 2px 6px rgba(20, 27, 36, 0.10)",
   },
   heroMark: {
-    borderRadius: 14,
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
     height: 56,
     width: 56,
   },

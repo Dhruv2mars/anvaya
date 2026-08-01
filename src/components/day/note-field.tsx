@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
-import { colors, radius, space, type } from "@/src/theme/tokens";
+import { colors, elevation, radius, space, type } from "@/src/theme/tokens";
 
 type Props = {
   dayKey: string;
@@ -11,6 +11,7 @@ type Props = {
 /** Parent should `key={dayKey}` so this remounts cleanly on day change. */
 export function NoteField({ dayKey: _dayKey, value, onCommit }: Props) {
   const [draft, setDraft] = useState(value);
+  const [focused, setFocused] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftRef = useRef(value);
   const committedValueRef = useRef(value);
@@ -52,8 +53,11 @@ export function NoteField({ dayKey: _dayKey, value, onCommit }: Props) {
   };
 
   return (
-    <View style={styles.wrap}>
-      <Text style={styles.label}>Note</Text>
+    <View style={[styles.card, focused && styles.cardFocused]}>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>Note</Text>
+        <Text style={styles.count}>{draft.length}/280</Text>
+      </View>
       <TextInput
         value={draft}
         onChangeText={(text) => {
@@ -61,10 +65,15 @@ export function NoteField({ dayKey: _dayKey, value, onCommit }: Props) {
           draftRef.current = text;
           scheduleCommit(text);
         }}
-        onBlur={flushCommit}
+        onFocus={() => setFocused(true)}
+        onBlur={() => {
+          setFocused(false);
+          flushCommit();
+        }}
         placeholder="One line for the day"
         placeholderTextColor={colors.inkTertiary}
         maxLength={280}
+        multiline
         returnKeyType="done"
         onSubmitEditing={flushCommit}
         style={styles.input}
@@ -75,22 +84,37 @@ export function NoteField({ dayKey: _dayKey, value, onCommit }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: {
+  card: {
     gap: space.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+    padding: space.lg,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+    boxShadow: elevation.card,
+  },
+  cardFocused: {
+    borderColor: colors.accent,
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
   },
   label: {
-    ...type.label,
+    ...type.eyebrow,
     color: colors.inkSecondary,
+  },
+  count: {
+    ...type.caption,
+    color: colors.inkTertiary,
+    fontVariant: ["tabular-nums"],
   },
   input: {
     ...type.body,
     color: colors.ink,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderRadius: radius.md,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    minHeight: 52,
+    padding: 0,
+    minHeight: 30,
   },
 });
